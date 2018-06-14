@@ -1,0 +1,817 @@
+<html>
+	<head>
+		<style>
+		table, th, td { border: 1px solid }
+		td { text-align: center }
+		</style>
+	</head>
+	<body>
+		<span style="text-align:center"><h2>Strategic Context - an AtB in-contract campaign and scenario generation system</h2></span>
+
+		<p>To begin with, your current contract always has four "tracks", each representing a region some distance from the home base. They roughly correspond to the old training/defend/fight/scout lance assignments. The track number influences the number of days for which a force must be committed to the track without being able to undergo repair or resupply. <br/><br/>
+
+Note that we use VP (Victory Points) here with the same meaning as "Contract Score".</p>
+
+		<p>Each week, we use the following procedure to determine where, when and what scenarios occur.</p>
+
+		<li>Place Scenarios</li>
+		<li>Commit Forces to Scenarios</li>
+		<li>Generate Scenario Allied and Opposing Forces</li>
+		<li>Commit Reinforcements</li>
+		<li>Resolve Scenarios</li>
+		<li>Apply End-of-week Effects</li>
+
+		<ol><li><b>Place Scenarios</b>
+			<ol>
+			<li><b>Place Follow-Up Scenarios</b><br/>
+			If a scenario in the previous week specified one or more follow-up scenarios, it is placed immediately now on the specified track. This placement ignores any other limitations on scenario placement.<br/></li>
+			<li><b>Roll for Random Scenarios</b><br/>
+			Using the <a href="#ScenarioOdds">Scenario Likelyhood Table</a> appropriate for the current contract, roll a d100 for each track, beginning with track <b>0</b>, then going to tracks <b>1</b>, <b>2</b> and <b>3</b> in order. The odds of a scenario appearing are modified according to the <a href="#MoraleModifiers">Morale Modifiers Table</a>. After each roll, if the number produced is less than or equal to the odds specified for the given track on the given contract table, a scenario is placed on the track immediately. Once it is determined that a scenario will be placed, randomly choose a scenario available for the current contract to determine which scenario actually occurs. Then, randomly determine the day of week on which the scenario occurs. Some scenarios may state that parallel scenarios must be placed as well, that is done at this time. After rolling for track three, we roll again for track 0. We stop rolling for new scenarios when one of the following conditions is reached:
+				<ul>
+					<li>We have made a number of d100 rolls equal to the number of <b>contract required lances</b> or 4, whichever is lower.</li>
+					<li>We have placed, through any mechanism, a number of scenarios equal to the number of <b>contract required lances</b></li>
+				</ul>
+
+			The number of scenarios to be placed should never exceed the number of contract required lances.
+			</li>
+			<li><b>Place Optional Scenarios</b><br/>
+			If the number of scenarios placed is less than the number of contract required lances AND the contract's command clause allows it, the player may opt to either initiate an attack on a known enemy facility or place an additional random scenario (from those available for the contract) on a track of their choosing. The player may not exceed the number of contract required lances when placing optional scenarios.</li>
+			<li><b>Combine and Chain Scenarios</b><br/>
+			If two or more scenarios of the same exact type occur in the same track, they are <b>combined</b>. The player must deploy the same number of lances as the number of scenarios that were combined. The opfor is generated based on the combined BV and average weight class of the combined lances.<br/><br/>
+
+			If two or more scenarios of different types occur in the same track, they are <b>linked</b>. In the absence of a link explicitly specified by the scenarios, linked scenarios are resolved in chronological order. <b>Linking</b> scenarios has the following effects:
+			<ul><li>Unless otherwise specified, if the player chooses to resolve an earlier scenario, they may opt to reinforce the next scenario in the chain with surviving, non-crippled units. However, surviving, non-crippled units from the opfor will also join the next scenario as reinforcements. Neither group may undergo repairs or ammo reloading.</li>
+			<li>Unless otherwise specified, ignoring a linked scenario will result in the opfor in the next scenario being augmented by an additional roll on the <a href="#">AtB Bot Lances table</a>, arriving as reinforcements.</li></ul>
+			</li>
+			<li id="AlliedPresence"><b>Determine Allied Presence</b><br/>
+			Depending on the contract's command rights, a bot-controlled allied force may be present for any particular scenario. To determine if that is the case, roll on the <a href="#CommandClauseAlliedForce">Command Clause Allied Forces table</a>. The actual allied force should not be generated until after primary forces are committed.</li>
+			<li id="FacilityMissions"><b>Determine Facility Type</b><br/>
+			If a generated scenario is a <b>Facility</b>, after all combination and linking has been done, we must determine the type of facility by rolling on the <a href="#FacilityTypes">Facility Types Table</a>.
+			</li>
+			</ol>
+		</li>
+		<li><b>Commit Forces to Scenarios</b><br/>
+		For each scenario that has been placed on one of the tracks, the player may choose to commit a force or ignore the scenario entirely. The exception to this being Integrated command rights, under which the required number of lances is randomly assigned (eligible for deployment) from the player's TO&E to each placed scenario. A force committed to a scenario is deployed for 7 - (track # * 2) days and may not be repaired, rearmed or otherwise worked on until the deployment ends. [future enhancement: mobile field bases?] The starting day of the deployment is chosen randomly, but must be chosen such that the actual scenario date falls within the deployment time frame. <br/><br/>
+
+		Ignoring a scenario generally incurs a VP loss, as well as other consequences, such as attacks on allied facilities, enemy reinforcements for other battles on the same track, temporary increases in enemy <b>BV budgets</b>, etc.
+		</li>
+		<li><b>[Optional] Determine Scenario Modifiers</b><br/>
+			For each scenario, roll on the following table to determine the number of modifiers applied to the scenario.<br/>
+			<table><tr><th>1d6 Roll</th><th># mods</th></tr>
+				<tr><td>1-2</td><td>0</td></tr>
+				<tr><td>3-4</td><td>1</td></tr>
+				<tr><td>5-6</td><td>2</td></tr></table><br/>
+
+			If a scenario has mods, roll on the <a href="#ScenarioModifiers">Scenario Modifiers</a> list. Note that a scenario mod may be mutually exclusive with a mod already rolled, or it may be rendered invalid by an active campaign effect. In those cases, ignore the invalid scenario mod. Otherwise, unless specified, a scenario mod can occur multiple times.
+		</li>
+		<li><b>Generate Scenario Allied and Opposing Forces</b><br/>
+		<ol><li><b>Determine Player Force Weight Class</b><br/>
+			This is the average weight class of the mechs in the player's lances assigned to the scenario, rounded to the nearest increment of 5 (2.5's round up). This will drive which of the <a href="#">AtB Bot Lances tables</a> is used for subsequent rolls.</li>
+			<li><b>Generate Primary Allied Forces</b><br/>
+		We need to generate the primary allied forces, if they are present. The allied force is always a lance [or faction-appropriate lance-equivalent], with a weight class determined by rolling on the appropriate <a href="#">AtB Bot Lances table</a> and randomly choosing one of the resulting lance weights. Once that's done, we roll on the <a href="#">AtB Mech/Vehicle table</a> to determine the type of units, then the <a href="#">AtB Lance Mech/Vehicle Weights table</a> to determine the individual unit weight classes, then generate the appropriate individual units using our RAT of choice (or the MekHQ/Megamek RAT Generator). The equipment quality level, pilot skill level and faction are from the employer.</li>
+
+		<li id="DetermineBVBudget"><b>Determine the BV Budget</b>:<br/>
+			This is the sum of the BVs of all assigned player lances, plus the BV of the allied forces generated in the previous step. It is multiplied by the factor given by the specific scenario and by the difficulty, according to the following table:<br/>
+			<table><tr><th>Difficulty</th><th>BV Budget Multiplier</th></tr>
+				<tr><td>Ultra-Green</td><td>80%</td></tr>
+				<tr><td>Green</td><td>90%</td></tr>
+				<tr><td>Regular</td><td>100%</td></tr>
+				<tr><td>Veteran</td><td>110%</td></tr>
+				<tr><td>Elite</td><td>120%</td></tr></table></li>
+		<li><b>Determine the Primary Opposing Forces</b><br/>
+		Having determined the BV budget and player force weight class, we now roll on the <a href="#">AtB Bot Lances table</a> and generate individual opfor lances, one lance at a time, until the total BV of the opfor surpasses our BV budget. Once that has happened, stop rolling additional lances, even if you are in the middle of a multi-lance result on the bot lances table. The equipment quality level, pilot skill level and faction are the contract-specified enemy, possibly modified by scenario mods. The generated force is your primary opfor.
+		</li>
+		<li><b>Determine additional allied and opposing forces</b><br/>
+		Some scenarios, scenario modifiers and previous linked scenarios may call for the generation of additional allied or enemy forces or reinforcements. They are generated at this point as instructed, independent of BV budgets. If not otherwise specified, reinforcements will arrive on the battlefield. Arrival time of each individual lance of reinforcements is on turn 12 - slowest walk MP - 1 if all units have jump jets, with a minimum arrival time of turn 2. </li>
+		</ol>
+		<li><b>Commit Reinforcements</b>
+		Once all primary and additional forces have been generated for a scenario, the player may choose to commit reinforcements.
+		<ul><li>Reinforcements (non-crippled survivors) from a previous linked scenario may be committed at this point. However, unless otherwise specified, surviving, non-crippled members of the opfor from the previous scenario will arrive as reinforcements as well.</li>
+		<li>Uncommitted lances may be committed at this point, if the contract command clause allows it. Each lance committed in this manner increases the odds of a scenario occurring in this track by 20% in the subsequent week. This increase decays by 10% per week until the scenario odds reach their normal number.</li></ul>
+		</li>
+		<li><b>Resolve Scenarios</b><br/>
+		Resolve each scenario in chronological order. Scenarios occurring on the same day may be resolved in order of player's choice. Effects from any scenario are applied immediately upon resolution, unless otherwise specified. Generally, facility effects will be suppressed if the facility is engaged in a given week, and part rolls, prisoners or recovered salvage should not become available until the assigned forces return from their deployment.
+		</li>
+		<li><b>Apply End-of-week Effects</b><br/>
+		After all scenarios are resolved, apply any scenario effects that occur at the end of the week. Any effects temporarily modifying the odds of scenario occurrence that were applied in a previous week decay by 10%. Any other temporary effects reduce their timer by a week or expire, if the timer has reached 0.
+		</li>
+	</ol>
+
+	<a href="#">Back to Top</a>
+	<p>
+		<h2>Command Clause Effects</h2>
+		<b>Integrated Command</b>
+		<ul><li>Player may not place optional scenarios</li>
+		<li>Player's lances are assigned randomly to any present scenarios</li>
+		<li>Two AI-controlled units are deployed with the player's force<br/>
+			Note that this limits the number of units in each primary player force to 4.</li>
+		<li>Every scenario automatically gains the <b>Required</b> trait: +1 VP for victory, -1 VP for loss.</li>
+		<li>Every scenario automatically gains the <b>Preserve Attached Units</b> primary objective: -1 VP per attached unit lost.<br/>
+			Note that this refers to the AI-controlled attached units generated by the command clause, and not any other allied units.</li>
+		<li>Every scenario automatically gains the <b>Preserve 50% Units</b> primary objective, and is considered a loss if that is not met.<br/>
+			50% refers to any deployed non-infantry units player and allied units, including reinforcements.</li>
+		<li>Every scenario has a 50% chance of containing allied presence, as described in the <a href="#AlliedPresence">Determine Allied Presence</a> section.</li>
+		<li>Player may request support, paying 1 VP for each support item requested.</li>
+		</ul>
+
+		<b>House Command</b>
+		<ul><li>Player may not place optional scenarios</li>
+		<li>Player may assign lances to scenarios as they see fit</li>
+		<li>One AI-controlled unit is deployed with the player's force<br/>
+			Note that this limits the number of units in each primary player force to 5.</li>
+		<li>Every scenario automatically gains the <b>Required</b> trait: +1 VP for victory, -1 VP for loss.</li>
+		<li>Every scenario automatically gains the <b>Preserve Attached Units</b> primary objective: -1 VP per attached unit lost.<br/>
+			Note that this refers to the AI-controlled attached units generated by the command clause, and not any other allied units.</li>
+		<li>Every scenario automatically gains the <b>Preserve 50% Units</b> primary objective, and is considered a loss if that is not met.<br/>
+			50% refers to any deployed non-infantry units player and allied units, including reinforcements.</li>
+		<li>Every scenario has a 30% chance of containing allied presence, as described in the <a href="#AlliedPresence">Determine Allied Presence</a> section.</li>
+		<li>Player may request support, paying 1 VP for each support item requested.</li>
+		</ul>
+
+		<b>Liaison Command</b>
+		<ul><li>Player may place optional scenarios</li>
+		<li>Player may assign lances to scenarios as they see fit</li>
+		<li>One player-controlled unit is deployed with the player's force<br/>
+			Note that this limits the number of units in each primary player force to 5.</li>
+		<li>One randomly chosen scenario per week automatically gains the <b>Required</b> trait: +1 VP for victory, -1 VP for loss.</li>
+		<li>The required scenario automatically gains the <b>Preserve Attached Units</b> primary objective: -1 VP per attached unit lost.<br/>
+			Note that this refers to the AI-controlled attached units generated by the command clause, and not any other allied units.</li>
+		<li>The required scenario automatically gains the <b>Preserve 50% Units</b> primary objective, and is considered a loss if that is not met.<br/>
+			50% refers to any deployed non-infantry units player and allied units, including reinforcements.</li>
+		<li>Every scenario has a 10% chance of containing allied presence, as described in the <a href="#AlliedPresence">Determine Allied Presence</a> section.</li>
+		<li>Player may request support, paying 1 VP for each support item requested.</li>
+		</ul>
+
+		<b>Independent Command</b>
+		<ul><li>Player may place optional scenarios</li>
+		<li>Player may assign lances to scenarios as they see fit</li>
+		<li>Player may not request support</li>
+		</ul>
+
+		<b id="CommandClauseAlliedForce">Command Clause Allied Forces Table</b>
+		<table><tr><th>Command Clause</th><th>Chance of Allied Forces</th></tr>
+			<tr><td>Integrated</td><td>50%</td></tr>
+			<tr><td>House</td><td>30%</td></tr>
+			<tr><td>Liaison</td><td>10%</td></tr>
+			<tr><td>Independent</td><td>50%</td></tr></table>
+
+		<b id="EmployerSupport">Employer Support</b>
+		A player may spend a single support point to request support from their employer. Support points can be gained through completion of certain scenario objectives, by sacrificing victory points at 1:1 exchange rate, or by dumb luck through monthly rolls. Possible support items include:<br/><br/>
+		<ul><li><b>Bonus Part</b>: This is a part roll, using the "scrounge" skill, not subject to the contract's parts availability restrictions, but subject to any other restrictions (tech level limitations, etc).</li>
+		<li><b>Artillery Support</b>: The player may deploy a lance of artillery units from the employer's RAT to a single scenario. These units are player-controlled (this will change once the bot is able to handle artillery), and may be deployed off-board.</li>
+		<li><b>Aerospace Support</b>: The player may deploy a lance of aerospace units from the employer's RAT to a single scenario. These units are AI-controlled. Weight class is determined using the <a href="#RandomAeroWeight">Random Aero Weight Class Table</a>.</li>
+		<li><b>Ground Support</b>: The player may deploy a lance of ground units from the employer's RAT to a single scenario. These units are AI-controlled. Weight class is determined using the <a href="#">AtB Bot Lances table</a> for the player's force weight.</li>
+		<li><b>Technical Support</b>: The player may hire a tech of any type for the duration of the contract.</li></ul>
+	</p>
+
+	<a href="#">Back to Top</a>
+	<p>
+		<h2>Force Generation Tables</h2>
+		<b id="RandomAeroWeight">Random Aero Weight Table</b><br/>
+		Note that, if the aero units are being generated for a faction that is one of the planet owners, we have a 50% chance of using the "conventional fighters" column instead.
+
+		<table><tr><th>1d6 Roll</th><th>Aero Weight Class</th><th># Conventional Fighters</th></tr>
+			<tr><td>1-3</td><td>Light</td><td>2</td></tr>
+			<tr><td>4-5</td><td>Medium</td><td>4</td></tr>
+			<tr><td>6</td><td>Heavy</td><td>6</td></tr></table>
+	</p>
+
+	<a href="#">Back to Top</a>
+	<p>
+		<h2>Scenarios</h2>
+		<h3>Standard Terminology</h3>
+		<b>Unit destruction:</b><br/>
+		Unless otherwise specified, a unit is considered "destroyed" if it is actually destroyed, permanently immobilized, or crippled and under forced withdrawal. Gun emplacements are considered "destroyed" if the crew is killed or they are unable to fire their weapons.
+		<b>Standard BV budget:</b><br/>
+		As described in the <a href="#DetermineBVBudget">Determine BV Budget</a> section, the standard BV budget for a scenario is the BV of the primary player lances assigned to the scenario, plus the BV of any primary allied forces, multiplied by the difficulty multiplier.<br/><br/>
+		<b>Standard Deployment:</b><br/>
+		Roll on the <a href="#">AtB Deployment</a> table to determine the deployment zone for the player's units. The opfor always deploys on the opposite end of the map. The opposite of "center" is "edge".<br/><br/>
+		<b>Open-field battle:</b><br/>
+		For open-field battles, unless otherwise specified, destroying more than 50% of the opfor will trigger an opfor retreat and grant the player battlefield control at the end of the scenario. In most cases, unless otherwise specified, this also gives the player free reign to accomplish the mission objectives. <br/><br/>
+		For the purposes of this metric, by default, the opfor unit count includes mechs, tanks and naval units, including reinforcements once they have arrived. This does not include aircraft, infantry or stationary gun emplacements.<br/><br/>
+		Once a retreat begins, the player may "play it out", or allow the bot to retreat and end the scenario on the following round with a "/victory". In the latter case, any units with at least one MP and conscious crew at the end of the turn on which "/victory" was declared are considred to have escaped.<br/><br/>
+		[Optional/Potential Future Improvement]For every open-field battle, unless otherwise specified, there is a 50/50 chance that the player may use "prepared defenses". This means that the player is allowed to deploy defensive infantry and mines. Additionally, any units, up to the battlefield commander's tactics skill, may be deployed as hidden. However, at least one unit must remain un-hidden due to AI limitations.<br/><br/>
+		<b>Facility:</b><br/>
+		Facility battles must take place on a map with buildings<br/><br/>
+		For battles taking place around a facility where the player is the attacker, unless otherwise specified, destroying more than 75% of the opfor will trigger an opfor retreat. Unlike open-field battles, stationary gun emplacements and infantry count towards this metric.<br/><br/>
+		Winning a facility battle in the above-described manner does not eliminate the facility.<br/><br/>
+
+		<h3 id="ScenarioRules">Scenario Rules and Descriptions</h3>
+		<ol>
+		<li><b>Enemy Force - Destroy (Stand-up Fight)</b><br/>
+		This is a simple skirmish, where the objective is to destroy 50% of the enemy force.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Standard deployment</li>
+		<li><b>Primary Objective</b>: Destroy more than 50% of the opfor</li></ul></li><br/>
+
+		<li><b>Enemy Force - Capture</b><br/>
+		This is a simple skirmish with a twist - a random enemy unit is designated as the capture target.<br/>
+		The capture can be accomplished in one of several ways:<br/>
+		<ul><li>Immobilize the target unit and retain battlefield control.</li>
+			<li>Destroy the target unit without killing the pilot/crew.</li>
+			<li>Force an ejection and pick up the mechwarrior - the unit picking up must survive the battle or leave the field intact.</li></ul><br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Standard deployment</li>
+		<li><b>Primary Objective</b>: Capture the designated target. Do not allow it to leave the battlefield.</li></ul></li><br/>
+
+		<li><b>Enemy Force - Assassinate</b><br/>
+		This is a simple skirmish, where the objective is to destroy a particular enemy unit.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Standard deployment</li>
+		<li><b>Primary Objective</b>: Destroy the designated target. Do not allow it to leave the battlefield.</li></ul></li><br/>
+
+		<li><b>Enemy Supploy Convoy - Attack</b><br/>
+		This is an attack on an enemy supply convoy. The convoy must be prevented from crossing the map and escaping off the far edge.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Convoy and escorts deploys on random map edge. </li>
+		<li>Convoy is generated using civilian RAT</li>
+		<li>Player force deploys on random map edge but cannot overlap with opponent start.</li>
+		<li><b>Primary Objective</b>: Prevent more than 50% of the convoy from reaching the far map edge.</li>
+		<li><b>Secondary Objective</b>: Destroy more than 50% of the convoy escorts to gain battlefield control.</li>
+		<li>Completing the secondary objective grants the player one support point per non-destroyed enemy vehicle.</li>
+		<li>Failing or ignoring this scenario increases enemy BV budgets by 5% for the next week.</li></ul></li><br/>
+
+		<li><b>Enemy Force - Recon</b><br/>
+		This is an open-field skirmish, where the objective is to "tag" every enemy unit with direct weapons fire, spotting or physical attacks. To "tag" a unit, it is sufficient to make the to-hit roll, actually hitting is not required.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Standard deployment</li>
+		<li>Enemy force will begin a retreat when more than 25% of the enemy units have been destroyed.</li>
+		<li><b>Primary Objective</b>: Tag 100% of the enemy units with weapons fire, spotting or physical attacks. If a unit is destroyed, it counts as tagged regardless of how it was destroyed.</li></ul></li><br/>
+
+		<li><b>Enemy Force - Engage</b><br/>
+		This is an open-field skirmish, where the objective is to engage a superior enemy force with weapons fire or physical attacks for a specified duration.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget * 1.25</li>
+		<li>Standard deployment</li>
+		<li>Enemy force will begin a retreat when more than 25% of the enemy units have been destroyed.</li>
+		<li>Required engagement duration is calculated as: # units in player's primary forces * 2 * difficulty multiplier.</li>
+		<li><b>Primary Objective</b>: Engage enemy units with weapons fire or physical attacks for the required engagement duration.</li>
+		<li>The player may retreat after the required engagement duration has been reached.</li>
+		<li><b>Alternate Objective</b>: Destroy more than 50% of the enemy force to force a retreat and gain battlefield control.</li>
+		<li>If the player is defeated, non-crippled surviving enemy units may reinforce a linked scenario without repairs or rearming.<br/>
+		The player's units may only reinforce linked scenarios if the player completes the alternate objective.</li></ul></li><br/>
+
+		<li><b>Enemy Force - Diversion</b><br/>
+		This is an open-field skirmish, where the player's force has been engaged by an enemy unit with the intent of delaying the player. The player must dispatch the enemy force within a time limit.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Standard deployment</li>
+		<li>Maximum engagement duration is calculated as: # units in player's primary forces * 2 * inverse difficulty multiplier (elite treated as ultra-green etc).</li>
+		<li><b>Primary Objective</b>: Destroy more than 50% of the enemy force within the maximum engagement duration.<br/>
+		If the player is victorious, surviving units may reinforce a linked scenario.
+		Otherwise, the player may not use units from this scenario to reinforce a linked scenario.</li></ul></li><br/>
+
+		<li><b>Enemy Force - Prevent Recon</b><br/>
+		This is an open-field skirmish, where the enemy force is attempting to gather recon data, and the player must prevent this activity. <br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Maximum opfor weight class is Medium</li>
+		<li>Standard deployment</li>
+		<li>Maximum engagement duration is calculated as: # units in player's primary forces * 2 * inverse difficulty multiplier (elite treated as ultra-green etc).</li>
+		<li><b>Primary Objective</b>: Destroy more than 50% of the enemy force within the maximum engagement duration.<br/>
+		If this scenario takes place in track 0 and the player fails the objective, the follow-up is a Defend - Base of Operations, in the same track.<br/>
+		If this scenario takes place in a track other than 0, the player fails the objective, and the scenario type is available, the follow-up is a Defend - [Random facility that's not Base of Operations].</li></ul></li><br/>
+
+		<li><b>Enemy Force - Breakthrough</b><br/>
+		The player force must break through an enemy line and get at least 50% of their units from the starting edge off the opposite edge.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget * 1.5</li>
+		<li>Map is 17x50 or 50x17, chosen randomly</li>
+		<li>The size of the narrow edge is increased by 5 for each additional primary player lance deployed</li>
+		<li>Player may not use prepared defenses of any kind</li>
+		<li>Player deploys on one of the narrow map edges</li>
+		<li>Ground reinforcements deploy on the opposite map edge from the player</li>
+		<li>Opfor deploys center</li>
+		<li><b>Primary Objective</b>: Move more than 50% of the player's units to the narrow map edge.</li>
+		<li><b>Alternate Primary Objective</b>: Destroy 50% of opfor to force a retreat and gain battlefield control.</li>
+		<li>Any surviving, non-disabled player units that cross the far edge may be used as reinforcements in a linked scenario, without repairs or reloads. If the alternate primary objective is completed, there is no requirement to cross the far edge. If the primary or alternate primary objectives are completed, the opfor may not reinforce the linked scenario.</li>
+		</ul></li><br/>
+
+		<li><b>Enemy Force - Pursuit</b><br/>
+		This is a chase scenario. The player must escape a superior pursuing enemy force.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget * 2</li>
+		<li>Map is 17x70 or 70x17, chosen randomly</li>
+		<li>The size of the narrow edge is increased by 5 for each additional primary player lance deployed</li>
+		<li>Player may not use prepared defenses of any kind</li>
+		<li>Player deploys on one of the narrow map edges</li>
+		<li>Ground reinforcements deploy on the opposite map edge from the player</li>
+		<li>Opfor deploys on the same narrow map edge as the player</li>
+		<li><b>Primary Objective</b>: Move more than 50% of the player's units to the narrow map edge.</li>
+		<li><b>Alternate Primary Objective</b>: Destroy 50% of opfor to force a retreat and gain battlefield control.</li>
+		<li>Any surviving, non-disabled player units that cross the far edge may be used as reinforcements in a linked scenario, without repairs or reloads. If the alternate primary objective is completed, there is no requirement to cross the far edge. If the alternate primary objective is completed, the opfor may not reinforce the linked scenario.</li>
+		</ul></li><br/>
+
+		<li><b>Enemy Force - Breakthrough (Defender)</b><br/>
+		The player force must prevent at least 50% of the enemy force from breaking through their lines to the opposite map edge<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget * 1.5</li>
+		<li>Map is 17x50 or 50x17, chosen randomly</li>
+		<li>The size of the narrow edge is increased by 5 for each additional primary player lance deployed</li>
+		<li>Player deploys in the center</li>
+		<li>Ground reinforcements deploy on the opposite map edge from the opfor</li>
+		<li>Opfor deploys on one of the narrow map edges</li>
+		<li><b>Primary Objective</b>: Prevent 50% or more of the enemy force from escaping off the far map edge.</li>
+		<li>Any surviving, non-disabled opfor units that cross the far edge may be used as reinforcements in a linked scenario, without repairs or reloads. If the player withdraws from the field, there is no no requirement to cross the far edge. The player may also reinforce the linked scenario with any surviving, non-disabled units, if the scenario is required and more than 50% of the player force survived, or if the scenario is not required.</li>
+		</ul></li><br/>
+
+		<li><b>Enemy Force - Pursuit (Defender)</b><br/>
+		This is a chase scenario. The player must pursue and prevent at least 50% of the enemy force from crossing the far narrow map edge.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget * 2</li>
+		<li>Map is 17x70 or 70x17, chosen randomly</li>
+		<li>The size of the narrow edge is increased by 5 for each additional primary player lance deployed</li>
+		<li>Player deploys on the same narrow map edge as the opfor</li>
+		<li>Ground reinforcements deploy on the opposite map edge from the player</li>
+		<li>Opfor deploys on a random narrow map edge</li>
+		<li><b>Primary Objective</b>: Prevent 50% or more of the enemy force from escaping off the far map edge.</li>
+		<li>Any surviving, non-disabled opfor units that cross the far edge may be used as reinforcements in a linked scenario, without repairs or reloads. If the player withdraws from the field, there is no no requirement to cross the far edge. The player may also reinforce the linked scenario with any surviving, non-disabled units.</li>
+		</ul></li><br/>
+
+		<li><b>Allied Supploy Convoy - Escort</b><br/>
+		The player must defend an allied supply convoy and escort the convoy units to the far edge of the map.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Standard BV budget</li>
+		<li>Convoy is generated using civilian RAT and contributes to player's BV budget</li>
+		<li>Convoy and player escort force deploys on random map edge.</li>
+		<li>Opfor deploys on random map edge but cannot overlap with opponent start.</li>
+		<li><b>Primary Objective</b>: More than 50% of the convoy from reaching the far map edge.</li>
+		<li>Completing the secondary objective grants the player one support point per non-destroyed enemy vehicle.</li></ul></li><br/>
+
+		<li><b>Riot Suppression</b><br/>
+		The player force must suppress a riot which has gotten out of control.<br/>
+
+		<ul><li>Open-field battle</li>
+		<li>Map must have buildings</li>
+		<li>Opfor receives the results of a single roll on the <a href="#">AtB Bot Lances table</a>, subject to standard BV budget.</li>
+		<li>Opfor receives 2X foot infantry units, where X is the number of units in the assigned primary player forces.</li>
+		<li>Opfor receives 2X units from the civilian RAT.</li>
+		<li>X allied, bot-controlled units from the civilian RAT are present.</li>
+		<li>Player deploys on random map edge</li>
+		<li>Opfor infantry, civilians and allied units deploy in center</li>
+		<li><b>Primary Objective</b>: Destroy all civilian RAT units. Destroy 50% of the enemy foot infantry.<br/>
+			The player may retreat after destroying all turrets - the mission is complete, but the player forfeits battlefield control.</li></ul>
+		</li><br/>
+
+		<li><b>Facility - Destroy</b><br/>
+		The player must destroy an enemy facility.<br/>
+
+		<ul><li>Facility Battle</li>
+		<li>Standard BV budget</li>
+		<li>Opfor receives X turrets, where X is the number of units in all assigned primary player forces</li>
+		<li>Player deploys on random map edge</li>
+		<li>Opfor deploys center</li>
+		<li><b>Primary Objective</b>: Destroy all turrets.<br/>
+			The player may retreat after destroying all turrets - the mission is complete, but the player forfeits battlefield control.</li></ul>
+		</li><br/>
+
+		<li><b>Facility - Engage</b><br/>
+		The player must stage a diversionary attack on an enemy facility to occupy its defenders and prevent it from committing forces elsewhere.<br/>
+
+		<ul><li>Facility Battle</li>
+		<li>Standard BV budget</li>
+		<li>Opfor receives X turrets, where X is the number of units in all assigned primary player forces</li>
+		<li>Player deploys on random map edge</li>
+		<li>Opfor deploys center</li>
+		<li>Required engagement duration is calculated as: # units in player's primary forces * 2 * difficulty multiplier.</li>
+		<li><b>Primary Objective</b>: Engage opfor or turrets with weapons fire or physical attacks for the required engagement time.<br/>
+			The player may retreat after the time limit is up - the mission is complete, but the player forfeits battlefield control.</li></ul>
+		</li><br/>
+
+		<li><b>Facility - Capture</b><br/>
+		The player must capture a facility without destroying it.<br/>
+		[Technical limitations]This can be accomplished by routing or destroying the enemy force.<br/>
+
+		<ul><li>Facility Battle</li>
+		<li>Standard BV budget</li>
+		<li>Opfor receives X turrets, where X is the number of units in all assigned primary player forces</li>
+		<li>Player deploys on random map edge</li>
+		<li>Opfor deploys center</li>
+		<li><b>Primary Objective</b>: Destroy 75% of the enemy force while destroying less than 25% of enemy turrets.</li>
+		<li>If successful, there is a 25% chance of a follow-up <b>Facility - Defend</b> on the same facility type.</ul>
+		</li><br/>
+
+		<li><b>Facility - Extract</b><br/>
+		The player must raid a facility and retrieve objects from the objective buildings marked by turrets. Extraction can be carried out by:<br/>
+			<ul><li>Moving a mech with hands adjacent or onto/into the target building and leaving it stationary for a turn.</li>
+			<li>Moving an infantry unit onto/into the target building and leaving it stationary for a turn.</li></ul><br/>
+
+		<ul><li>Facility Battle</li>
+		<li>Standard BV budget</li>
+		<li>Opfor receives X turrets, where X is the number of units in all assigned primary player forces</li>
+		<li>Player deploys on random map edge</li>
+		<li>Opfor deploys center</li>
+		<li><b>Primary Objective</b>: Extract objectives from 75% of target buildings.</li>
+		<li>Each building may only be extracted from once.</li>
+		<li>Destroying a building makes it impossible to conduct an extraction.</li></ul>
+		</li><br/>
+
+		<li><b>Facility - Defend</b><br/>
+		The player defend a facility from enemy attack.<br/>
+
+		<ul><li>Facility Battle</li>
+		<li>Standard BV budget</li>
+		<li>Player receives X allied turrets, controlled by the bot, where X is the number of units in all assigned primary player forces</li>
+		<li>Player deploys center</li>
+		<li>Player may use prepared defenses with 50% chance</li>
+		<li>Opfor deploys on random map edges, with each lance deploying on an individual random edge</li>
+		<li><b>Primary Objective</b>: Defend at least 50% of turret buildings.</li></ul>
+		</li><br/>
+
+		<li><b>Facility - Recon</b><br/>
+		The player must conduct detailed reconaissance on an enemy base.<br/>
+
+		<ul><li>Facility Battle</li>
+		<li>Standard BV budget</li>
+		<li>Opfor receives X turrets, where X is the number of units in all assigned primary player forces. The turrets are hidden, per Hidden Units rules.</li>
+		<li>Player deploys on random edge</li>
+		<li>Opfor deploys center</li>
+		<li><b>Primary Objective</b>: Identify 100% of the turret buildings.</li></ul>
+		</li><br/>
+
+		</ol>
+	</p>
+
+	<a href="#">Back to Top</a>
+	<p>
+		<h3 id="FacilityTypes">Facility Types</h3>
+		<table><tr><th>1d10 Roll</th><th>Facility Type</th></tr>
+			<tr><td>1</td><td>Mech Base</td></tr>
+			<tr><td>1</td><td>Vehicle Base</td></tr>
+			<tr><td>1</td><td>Air Base</td></tr>
+			<tr><td>1</td><td>Supply Depot</td></tr>
+			<tr><td>1</td><td>Data Center</td></tr>
+			<tr><td>1</td><td>Production Facility</td></tr>
+			<tr><td>1</td><td>Command Center</td></tr>
+			<tr><td>1</td><td>Early Warning System</td></tr>
+			<tr><td>1</td><td>Orbital Defence</td></tr>
+			<tr><td>1</td><td>Base of Operations</td></tr></table><br/>
+
+		Note that effects from multiple facilities will stack. When defending allied facilities, they deploy the additional forces specified, but do not provide the long-term benefits.<br/>
+		[Investigate if Necessary] Any facility should have a chance to spawn X units from the civilian RAT and treat them identically to the turrets for destroy/capture objective purposes and unit counts? X would be the number of units in player-deployed primary forces and may be multiplied by some factor.
+
+		<ol><li><b>Mech Base</b><br/>
+		This facility houses mechs and repair/maintenance facilities. Until it has been destroyed or captured, it will add a lance of reinforcements to all battles in its and adjacent tracks.
+
+		When attacking a mech base, it will deploy an additional lance of mechs, with weight class determined by rolling on the <a href="#">AtB Bot Lances table</a> and picking a random lance from the result.
+
+		Completing a Facility - Capture, Facility - Destroy (with battlefield control) will yield one support point per surviving building.<br/>
+		Completing a Facility - Extract will yield one support point per extraction performed.</li>
+		<li><b>Vehicle Base</b><br/>
+		This is identical to a mech base, except that the reinforcements and additional lance are vehicles.
+		</li>
+		<li><b>Air Base</b><br/>
+		This is identical to a mech base, except that the reinforcements and additional lance are aircraft, with weight class determined by rolling on the <a href="#RandomAeroWeight">Random Aero Weights</a> table. Additionally, it will reinforce a battle on *any* track.
+		</li>
+		<li><b>Supply Depot</b><br/>
+		This facility houses supplies. Until it has been destroyed or captured, it increases the BV budget for all generated opfors by 5%.
+
+		Completing a Facility - Capture, Facility - Destroy (with battlefield control) will yield one support point per surviving building.<br/>
+		Completing a Facility - Extract will yield one support point per extraction performed.</li>
+
+		<li><b>Data Center</b><br/>
+		This facility houses data storage, essential for the opfor's coordination. While active, it increases the odds of a scenario by 5% when rolling on the <a href="#">Scenario Likelyhood Table</a><br/>
+
+		[Cutting room floor]A Facility - Capture or Facility - Extract victory here has a 5% chance per building captured or extracted to spawn a Star League Cache mission chain.</li>
+
+		<li><b>Production Facility</b><br/>
+		This is a facility carrying out industrial activity relevant to the war effort, but having no effect on the immediate contract.</li>
+
+		<li><b>Command Center</b><br/>
+		This facility is responsible for coordinating enemy activity across the theatre of operations. While active, any scenario receives an additional scenario modifier, rerolling ones that are beneficial to the player.
+		</li>
+
+		<li><b>Early Warning System</b><br/>
+		Any facility mission (with the exception of Facility - Defend) is preceded by a randomly generated open-field battle. The open-field battle may not be an allied convoy escort.</li>
+
+		<li><b>Orbital Defense System</b><br/>
+		This facility houses or controls weapons suitable for use against aerospace assets, preventing player or allied air activity within the track.</li>
+
+		<li><b>Base of Operations</b><br/>
+		This facility houses the player's or opfor's command staff, support personnel and supplies. If destroyed or captured, the contract ends (in failure if the facility is allied, in success if the facility is opfor-held).<br/>
+		If the scenario takes place on track 0, the player may deploy any uncommitted, unmothballed units in defense.<br/>
+		The number of gun emplacement spawned is multiplied by two.</br>
+		</li>
+		</ol>
+
+	</p>
+
+	<p>
+		<h3 id="ScenarioModifiers">Scenario Modifiers</h3>
+		<ol>
+			<li><b>Enemy Air Support</b><br/>
+				The opfor recieves a lance of aircraft, deploying on turn 12 - slowest aircraft speed from a random map edge. Weight is determined by rolling on the <a href="#RandomAeroWeight">Random Aero Weights</a> table.</li>
+			<li><b>Enemy Air Support - Bombers</b><br/>
+				As per <b>Enemy Air Support</b>, except that one of the aircraft is fully loaded with a bomb type randomly selected from:<br/>
+				High Explosive, Cluster, Inferno, Thunder</li>
+			<li><b>Enemy - Reinforcements</b><br/>
+				The opfor receives an additional lance of tanks or battlemechs as reinforcements, deploying on turn 12 - slowest unit walk MP - 1 if all units have jump jets. Weight class is determined by rolling on the <a href="#">AtB Bot Lances table</a> and picking a random lance from the result.</li>
+			<li><b>Local Garrison - Infantry</b><br/>
+				X infantry platoons deploy in the center, where X is the number of units in primary player-deployed forces. Infantry is allied with a randomly-selected planet owner. If the owner is neither the employer nor the opfor, the infantry is hostile to both sides. Each infantry unit has a 33% chance of being a field gun. Otherwise, it's generated from the standard infantry RAT for its faction.</li>
+			<li><b>Local Garrison - Gun Emplacements</b><br/>
+				X gun emplacements are deployed anywhere, where X is the number of units in primary player-deployed forces. Gun emplacements are allied with a randomly-selected planet owner. If the owner is neither the employer nor the opfor, the gun emplacements are hostile to both sides. This modifier is ignored in non-urban scenarios.</li>
+			<li><b>Rookies</b><br/>
+				When generating units for the opfor, treat their skill level as one level lower than normal. e.g. Regular becomes Green.<br/>
+				Mutually exclusive with <b>Veterans</b>.</li>
+			<li><b>Veterans</b><br/>
+				When generating units for the opfor, treat their skill level as one level higher than normal. e.g. Regular becomes Veteran.<br/>
+				Mutually exclusive with <b>Rookies</b>.</li>
+			<li><b>Bad Equipment</b><br/>
+				When generating units for the opfor, treat their equipment quality as one level lower than normal. e.g. C becomes D.<br/>
+				Mutually exclusive with <b>Good Equipment</b>.</li>
+			<li><b>Good Equipment</b><br/>
+				When generating units for the opfor, treat their equipment quality as one level higher than normal. e.g. C becomes B.<br/>
+				Mutually exclusive with <b>Bad Equipment</b>.</li>
+			<li><b>Hot Drop</b><br/>
+				The player is allowed to use a dropship to deliver their force to the battlefield. If the player does not have a dropship, a random one is selected from the employer RAT. The player has the option of loading as many units as the dropship can carry into the dropship. Any units that don't fit deploy as normal. The dropship may also deploy on the ground. The dropship counts towards the opfor's BV budget.</br>
+			<li><b>Enemy Hot Drop</b><br/>
+				The opfor receives an additional lance of units, deploying in the center on a random round between 1 and 12. Weight class is determined by rolling on the <a href="#">AtB Bot Lances table</a> and picking a random lance from the result.</li>
+			<li><b>Grounded Enemy Dropship</b><br/>
+				A dropship from the opfor RAT is deployed on the ground in the primary opfor deployment zone.</li>
+			<li><b>Enemy Commander</b><br/>
+				A randomly-selected unit in the opfor is designated as the commander and given the 'Tactical Genius' SPA.</li>
+			<li><b>Good Intel</b><br/>
+				When generating the opfor, remove a random lance from the opfor after it has been generated.<br/>
+				Mutually exclusive with <b>Bad Intel</b></li>
+			<li><b>Bad Intel</b><br/>
+				When generating the opfor, add an extra lance to the opfor after it has been generated. Weight class is determined by rolling on the <a href="#">AtB Bot Lances table</a> and picking a random lance from the result.<br/>
+				Mutually exclusive with <b>Good Intel</b></li>
+			<li><b>Duel</b><br/>
+				Pick a random mech from the player-deployed primary forces. Instead of generating the entire opfor, generate a mech of one weight class higher (if Assault, raise the equipment class and skill level by one instead). The duel replaces the scenario. If the player wins, the scenario is treated as having had all objectives completed. Any secondary awards based on number of intact units or turrets are awarded fully in this case.</li>
+			<li><b>Training Exercise</b><br/>
+				The scenario takes place against an opfor generated from the allied RAT. No actual damage is applied after the scenario, however XP is awarded as usual. Allied units from this scenario will only reinforce other <b>Training Exercise</b> scenarios. This modifier is only valid on contracts where the employer is one of the planet owners.</li>
+			<li><b>Enemy - Ambush</b><br/>
+				The opfor may deploy their units anywhere, and up to half of them may deploy hidden.</li>
+			<li><b>Player - Ambush</b><br/>
+				The player may deploy their units anywhere, and a number equal to the commander's tactics skill may deploy hidden. The player may deploy defensive infantry and mines as well.</li>
+			<li><b>Allied - Air Support</b><br/>
+				This is identical to <b>Enemy - Air Support</b>, except that the aircraft lance is allied to the player and generated using the employer's RAT.</li>
+			<li><b>Allied - Bomber Support</b><br/>
+				This is identical to <b>Enemy Air Support - Bombers</b>, except that the aircraft lance is allied to the player and generated using the employer's RAT.</li>
+			<li><b>Allied - Artillery Support</b><br/>
+				A lance of allied artillery from the employer's RAT is deployed off-board under the player's control.</li>
+			<li><b>Allied - Ground Support</b><br/>
+				A lance of allied mechs or tanks (determined by rolling on the <a href="#">AtB Mech/Vehicle table</a>) is deployed as reinforcements on turn 12 - slowest unit speed - 1 if all units have jump jets. Weight class is determined by rolling on the <a href="#">AtB Bot Lances table</a> and picking a random lance from the result.</li>
+			<li><b>Allied Treachery</b><br/>
+				When generating the opfor, use the allied RAT. After the battle, roll a negotiation check using the commander or command admin, whoever is better. Success awards 1 VP if applicable and subtracts 1 VP if not. [Potential future development: more drastic aftereffects, e.g. contract termination or switching employers].</li>
+			<li><b>Pre-battle damage</b><br/>
+				When generating the opfor, randomly pick a number between 1 and the enemy unit count. Then, apply 1d20 damage to that number of randomly selected enemy units.</li>
+			<li><b>Off-world Operation</b><br/>
+				Gravity, atmospheric pressure and temperature are determined randomly. The scenario is unaffected by campaign state (BV budget modifiers, etc) and does not affect campaign state. It also does not provide or receive reinforcements.</li>
+			<li><b>Search and Rescue</b><br/>
+				Valid only in terrain with buildings. The opfor is given a single turret. The player may carry out an extraction from it as per the extraction scenario rules. Successfull extraction gains the player one support point.</li>
+		</ol>
+	</p>
+	<p><h2 id="ScenarioOdds">Contract Scenario Odds and Lists</h2>
+		<table id="MoraleModifiers">
+			<tr><td>Morale Level</td><td>Rout</td><td>Very Low</td><td>Low</td><td>Normal</td><td>High</td><td>Very High</td><td>Invincible</td></tr>
+			<tr><td>Scenario Odds Modifier</td><td>Special</td><td>-10%</td><td>-5%</td><td>0%</td><td>+5%</td><td>+10%</td><td>Special</td></tr>
+		</table>
+
+		Unless otherwise specified, if morale goes to Rout, the player can end the contract immediately with a Victory result.<br/>
+		If morale goes to Invincible, any generated scenario is instead placed as a <b>Facility - Defend (Base of Operations)</b> on track 0.<br/>
+
+
+		<ol><li><b>Objective Raid</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>40%</td><td>60%</td></tr></table>
+
+			The following scenarios are not available in Objective Raid contracts:<br/>
+			<ul><li>Facility - Defend, except for the player's Base of Operations in track 0</li>
+				<li>Facility - Capture</li>
+				<li>Allied Supploy Convoy - Escort</li>
+				<li>Riot Suppression</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Destroy</li>
+				<li>Enemy Force - Assassinate</li>
+			</ul>
+			</li>
+
+			<li><b>Recon Raid</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>40%</td><td>60%</td></tr></table>
+
+			The following scenarios are not available in Recon Raid contracts:<br/>
+			<ul><li>Facility - Defend, except for the player's Base of Operations in track 0</li>
+				<li>Facility - Capture</li>
+				<li>Facility - Destroy</li>
+				<li>Allied Supploy Convoy - Escort</li>
+				<li>Riot Suppression</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Recon</li>
+				<li>Facility - Extract (Data Center)</li>
+				<li>Enemy Force - Recon</li>
+			</ul>
+			</li>
+
+			<li><b>Extraction Raid</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>40%</td><td>60%</td></tr></table>
+
+			The following scenarios are not available in Extraction Raid contracts:<br/>
+			<ul><li>Facility - Defend, except for the player's Base of Operations in track 0</li>
+				<li>Facility - Capture</li>
+				<li>Facility - Destroy</li>
+				<li>Allied Supploy Convoy - Escort</li>
+				<li>Riot Suppression</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Extract</li>
+				<li>Enemy Force - Capture</li>
+			</ul>
+			</li>
+
+			<li><b>Diversionary Raid</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>40%</td><td>60%</td></tr></table>
+
+			The following scenarios are not available in Diversionary Raid contracts:<br/>
+			<ul><li>Facility - Defend, except for the player's Base of Operations in track 0</li>
+				<li>Facility - Capture</li>
+				<li>Allied Supploy Convoy - Escort</li>
+				<li>Riot Suppression</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete at least one scenario per month of contract duration (in total, by the end of the contract). Thus, any scenario is considered a strategic objective.
+			</li>
+
+			<li><b>Guerilla</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>40%</td><td>20%</td></tr></table>
+
+			The following scenarios are not available in Guerilla contracts:<br/>
+			<ul><li>Facility - Defend, except for the player's Base of Operations in track 0</li>
+				<li>Facility - Capture</li>
+				<li>Riot Suppression</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete at least one scenario per month of contract duration (in total, by the end of the contract). Thus, any scenario is considered a strategic objective.
+			</li>
+
+			<li><b>Pirate Hunting</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>40%</td><td>20%</td></tr></table>
+
+			The following scenarios are not available in Pirate Hunting contracts:<br/>
+			<ul><li>Facility - Capture</li>
+				<li>Facility - Engage</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Defend</li>
+				<li>Facility - Capture</li>
+				<li>Facility - Destroy</li>
+				<li>Allied Supploy Convoy - Escort</li>
+				<li>Enemy Units - Destroy</li>
+				<li>Enemy Units - Capture</li>
+				<li>Enemy Units - Assasinate</li>
+			</ul>
+			</li>
+
+			<li><b>Planetary Assault</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>20%</td><td>40%</td><td>80%</td><td>40%</td></tr></table>
+
+			All scenarios are available in Planetary Assault contracts.<br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Destroy</li>
+				<li>Facility - Capture</li>
+				<li>Riot Suppression</li>
+			</ul>
+			</li>
+
+			<li><b>Relief Duty</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>20%</td><td>40%</td><td>80%</td><td>40%</td></tr></table>
+
+			All scenarios are available in Relief Duty contracts.<br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			On Relief Duty contracts, the chance of a scenario having an allied unit present is raised to 50% regardless of command level.
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Destroy</li>
+				<li>Facility - Capture</li>
+			</ul>
+			</li>
+
+			<li><b>Garrison Duty</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>20%</td><td>20%</td></tr></table>
+
+			The following scenarios are not available in Garrison Duty contracts:<br/>
+			<ul><li>Facility - Capture</li>
+				<li>Facility - Engage</li>
+				<li>Facility - Destroy</li>
+				<li>Facility - Extract</li>
+				<li>Facility - Recon</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			If enemy morale goes to <b>Rout</b>, roll 1d6 - 2 (with a minimum of 1). There is no enemy activity for that many months.<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Defend</li>
+				<li>Allied Supploy Convoy - Escort</li>
+			</ul>
+			</li>
+
+			<li><b>Riot Duty</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>20%</td><td>20%</td></tr></table>
+
+			The following scenarios are not available in Riot Duty contracts:<br/>
+			<ul><li>Facility - Capture</li>
+				<li>Facility - Engage</li>
+				<li>Facility - Destroy</li>
+				<li>Facility - Extract</li>
+				<li>Facility - Recon</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Defend</li>
+				<li>Riot Suppression</li>
+			</ul>
+			</li>
+
+			<li><b>Security Duty</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>20%</td><td>20%</td><td>20%</td></tr></table>
+
+			The following scenarios are not available in Security Duty contracts:<br/>
+			<ul><li>Facility - Capture</li>
+				<li>Facility - Engage</li>
+				<li>Facility - Destroy</li>
+				<li>Facility - Extract</li>
+				<li>Facility - Recon</li>
+			</ul><br/>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Strategic Objectives:<br/>
+			<ul><li>Facility - Defend</li>
+				<li>Allied Supploy Convoy - Escort</li>
+			</ul>
+			</li>
+
+			<li><b>Cadre Duty</b>
+			<table><tr><td>Track #</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+				<tr><td>Scenario Odds</td><td>10%</td><td>10%</td><td>10%</td><td>10%</td></tr></table>
+
+			Under Independent or Liaison command, the player must complete one Strategic Objective per month of contract duration (in total, by the end of the contract).<br/><br/>
+
+			Each scenario has a 75% chance of being a Training Exercise. Any of the following scenarios are always training exercises:
+			<ul>
+			<li>Facility - Capture</li>
+			<li>Facility - Engage</li>
+			<li>Facility - Destroy</li>
+			<li>Facility - Extract</li>
+			<li>Facility - Recon</li>
+			</ul>
+
+
+			Strategic Objectives:<br/>
+			<ul><li>Any scenario that is a Training Exercise</li>
+			</ul>
+			</li>
+		</ol>
+	</body>
+</html>

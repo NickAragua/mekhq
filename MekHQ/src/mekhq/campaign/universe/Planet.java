@@ -396,6 +396,10 @@ public class Planet implements Serializable {
         return mass;
     }
     
+    public void setMass(double value) {
+        mass = value;
+    }
+    
     public Double getDensity() {
         return density;
     }
@@ -410,6 +414,10 @@ public class Planet implements Serializable {
 
     public Double getOrbitSemimajorAxis() {
         return orbitSemimajorAxis;
+    }
+    
+    public void setOrbitSemimajorAxis(double value) {
+        orbitSemimajorAxis = value;
     }
     
     /** @return orbital semimajor axis in km; in the middle of the star's life zone if not set */
@@ -450,6 +458,10 @@ public class Planet implements Serializable {
     
     public Integer getSystemPosition() {
         return sysPos;
+    }
+    
+    public void setSystemPosition(int pos) {
+        sysPos = pos;
     }
     
     public String getSystemPositionText() {

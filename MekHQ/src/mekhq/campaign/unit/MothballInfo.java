@@ -13,7 +13,7 @@ import mekhq.MekHqXmlSerializable;
 import mekhq.MekHqXmlUtil;
 import mekhq.Version;
 import mekhq.campaign.Campaign;
-import mekhq.campaign.parts.Refit;
+import mekhq.campaign.force.Force;
 import mekhq.campaign.personnel.Person;
 
 /**
@@ -63,7 +63,8 @@ public class MothballInfo implements MekHqXmlSerializable {
     public void restorePreMothballInfo(Unit unit, Campaign campaign) 
     {
         Person tech = campaign.getPerson(techID);
-        if(tech != null) {
+        // restore the tech if that isn't going to make them work overtime
+        if(tech != null && tech.getMaintenanceTimeUsing() + unit.getMaintenanceTime() < Unit.TECH_WORK_DAY) {
             unit.setTech(tech);
         }
         
@@ -104,7 +105,8 @@ public class MothballInfo implements MekHqXmlSerializable {
             unit.setNavigator(navigator);
         }
         
-        if(campaign.getForce(forceID) != null) {
+        // 
+        if((forceID > Force.FORCE_NONE) && (campaign.getForce(forceID) != null)) {
             campaign.addUnitToForce(unit, forceID);
         }
     }

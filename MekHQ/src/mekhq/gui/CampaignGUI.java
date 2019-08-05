@@ -1462,7 +1462,7 @@ public class CampaignGUI extends JPanel {
         }
         if (minutesAvail < totalAstechMinutesNeeded) {
             int needed = (int) Math
-                    .ceil((totalAstechMinutesNeeded - minutesAvail) / 480D);
+                    .ceil((totalAstechMinutesNeeded - minutesAvail) / Unit.TECH_WORK_DAY);
             if (JOptionPane.YES_OPTION != JOptionPane.showConfirmDialog(null,
                     "You do not have enough astechs to provide for full maintenance. You need "
                             + needed
@@ -1885,9 +1885,9 @@ public class CampaignGUI extends JPanel {
                     continue;
                 }
                 if (tech.getSecondaryRole() == Person.T_MECH_TECH || tech.getSecondaryRole() == Person.T_MECHANIC || tech.getSecondaryRole() == Person.T_AERO_TECH) {
-                    TimePerDay = 240 - tech.getMaintenanceTimeUsing();
+                    TimePerDay = Unit.TECH_WORK_DAY / 2 - tech.getMaintenanceTimeUsing();
                 } else {
-                    TimePerDay = 480 - tech.getMaintenanceTimeUsing();
+                    TimePerDay = Unit.TECH_WORK_DAY - tech.getMaintenanceTimeUsing();
                 }
                 skillLvl = SkillType.getExperienceLevelName(tech.getExperienceLevel(false));
                 name = tech.getFullName()

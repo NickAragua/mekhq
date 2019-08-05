@@ -64,6 +64,7 @@ import mekhq.adapter.SpectralClassAdapter;
 import mekhq.adapter.StringListAdapter;
 import mekhq.campaign.CampaignOptions;
 import mekhq.campaign.universe.Faction.Tag;
+import mekhq.campaign.universe.SystemGenerator.PlanetType;
 
 
 /**
@@ -161,6 +162,9 @@ public class Planet implements Serializable {
     private Double gravity;
     private Double dayLength;
     private Double tilt;
+    private Double escapeVelocity;
+    private PlanetType planetType;
+    
     @XmlElement(name = "class")
     private String className;
     
@@ -392,6 +396,10 @@ public class Planet implements Serializable {
         return gravity;
     }
     
+    public void setGravity(double value) {
+        gravity = value;
+    }
+    
     public Double getMass() {
         return mass;
     }
@@ -404,8 +412,16 @@ public class Planet implements Serializable {
         return density;
     }
     
+    public void setDensity(double value) {
+        density = value;
+    }
+    
     public Double getRadius() {
         return radius;
+    }
+    
+    public void setRadius(double value) {
+        radius = value;
     }
     
     public String getGravityText() {
@@ -427,6 +443,10 @@ public class Planet implements Serializable {
 
     public List<String> getSatellites() {
         return null != satellites ? new ArrayList<String>(satellites) : null;
+    }
+    
+    public void clearSatellites() {
+        satellites = new ArrayList<>();
     }
 
     public String getSatelliteDescription() {
@@ -456,6 +476,10 @@ public class Planet implements Serializable {
         return dayLength;
     }
     
+    public void setDayLength(double value) {
+        dayLength = value;
+    }
+    
     public Integer getSystemPosition() {
         return sysPos;
     }
@@ -480,6 +504,22 @@ public class Planet implements Serializable {
         return tilt;
     }
     
+    public Double getEscapeVelocity() {
+        return escapeVelocity;
+    }
+
+    public void setEscapeVelocity(Double escapeVelocity) {
+        this.escapeVelocity = escapeVelocity;
+    }
+
+    public PlanetType getPlanetType() {
+        return planetType;
+    }
+
+    public void setPlanetType(PlanetType planetType) {
+        this.planetType = planetType;
+    }
+
     public String getDescription() {
         return desc;
     }
@@ -719,6 +759,10 @@ public class Planet implements Serializable {
         return getEventData(when, pressure, new EventGetter<Integer>() {
             @Override public Integer get(PlanetaryEvent e) { return e.pressure; }
         });
+    }
+    
+    public void setPressure(int value) {
+        pressure = value;
     }
     
     public String getPressureName(DateTime when) {

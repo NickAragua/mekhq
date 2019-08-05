@@ -4294,6 +4294,10 @@ public class Unit implements MekHqXmlSerializable, ITechnology {
     public int getDaysToArrival() {
         return daysToArrival;
     }
+    
+    public MothballInfo getMothballInfo() {
+        return mothballInfo;
+    }
 
     public boolean checkArrival() {
         if(daysToArrival > 0) {

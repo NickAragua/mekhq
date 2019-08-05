@@ -38,7 +38,9 @@ import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
@@ -57,6 +59,7 @@ import mekhq.campaign.personnel.Person;
 import mekhq.campaign.unit.Unit;
 import mekhq.campaign.universe.Faction;
 import mekhq.campaign.universe.IUnitGenerator;
+import mekhq.campaign.universe.SystemGenerator;
 import mekhq.gui.CampaignGUI;
 import mekhq.gui.preferences.JComboBoxPreference;
 import mekhq.gui.preferences.JIntNumberSpinnerPreference;
@@ -194,6 +197,42 @@ public class GMToolsDialog extends JDialog implements ActionListener {
 
         return 0;
     }
+    
+    private JPanel getSystemDialog() {
+        JPanel sysPanel = new JPanel(new GridBagLayout());
+        sysPanel.setBorder(BorderFactory.createTitledBorder("Quick System Generator"));
+        
+        JTextArea txtOutput = new JTextArea();
+        txtOutput.setLineWrap(true);
+        txtOutput.setColumns(80);
+        txtOutput.setRows(20);
+        
+        JTextField txtForceHabitable = new JTextField();
+        JLabel lblForceHabitable = new JLabel("Force Habitation");
+        
+        //JCheckBox chk
+        
+        JButton btnGenerate = new JButton("Generate");
+        btnGenerate.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SystemGenerator sgen = new SystemGenerator();
+                sgen.initializeSystem();
+                sgen.initializeOrbitalSlots();
+                sgen.fillOrbitalSlots();
+                txtOutput.setText(sgen.getOutput());
+            };        
+        });
+        
+        sysPanel.add(btnGenerate, newGridBagConstraints(0, 0));
+        
+        JScrollPane scrollPane = new JScrollPane();
+        scrollPane.setViewportView(txtOutput);
+        sysPanel.add(scrollPane, newGridBagConstraints(0, 1));
+        
+        return sysPanel;
+    }
 
     private JPanel getRATRoller() {
         JPanel ratPanel = new JPanel(new GridBagLayout());
@@ -302,6 +341,7 @@ public class GMToolsDialog extends JDialog implements ActionListener {
     private void initComponents() {
         getContentPane().add(getDiceRoller(), newGridBagConstraints(0,0));
         getContentPane().add(getRATRoller(), newGridBagConstraints(0,1));
+        getContentPane().add(getSystemDialog(), newGridBagConstraints(0, 2));
     }
 
     private void setUserPreferences() {

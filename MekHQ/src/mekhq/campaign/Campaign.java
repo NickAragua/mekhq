@@ -1216,14 +1216,9 @@ public class Campaign implements Serializable, ITechManager {
         if (log) {
             addReport(p.getHyperlinkedName() + " has been added to the personnel roster"+add+".");
         }
-        if (p.getPrimaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes += 480;
-            astechPoolOvertime += 240;
-        }
-        if (p.getSecondaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes += 240;
-            astechPoolOvertime += 120;
-        }
+        
+        addAstechMinutes(p);
+        
         String rankEntry = LogEntryController.generateRankEntryString(p);
         if (prisoner) {
             if (getCampaignOptions().getDefaultPrisonerStatus() == CampaignOptions.BONDSMAN_RANK) {
@@ -1262,14 +1257,9 @@ public class Campaign implements Serializable, ITechManager {
 
         //TODO: implement a boolean check based on campaign options
         addReport(p.getHyperlinkedName() + " has been added to the personnel roster.");
-        if (p.getPrimaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes += 480;
-            astechPoolOvertime += 240;
-        }
-        if (p.getSecondaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes += 240;
-            astechPoolOvertime += 120;
-        }
+
+        addAstechMinutes(p);
+       
         String rankEntry = LogEntryController.generateRankEntryString(p);
 
         p.setFreeMan();
@@ -1310,14 +1300,9 @@ public class Campaign implements Serializable, ITechManager {
         if (log) {
             addReport(p.getHyperlinkedName() + " has been added to the personnel roster.");
         }
-        if (p.getPrimaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes += 480;
-            astechPoolOvertime += 240;
-        }
-        if (p.getSecondaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes += 240;
-            astechPoolOvertime += 120;
-        }
+
+        addAstechMinutes(p);
+
         String rankEntry = LogEntryController.generateRankEntryString(p);
         ServiceLogger.joined(p, getDate(), getName(), rankEntry);
     }
@@ -3309,14 +3294,7 @@ public class Campaign implements Serializable, ITechManager {
         }
 
         personnel.remove(id);
-        if (person.getPrimaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes = Math.max(0, astechPoolMinutes - 480);
-            astechPoolOvertime = Math.max(0, astechPoolOvertime - 240);
-        }
-        if (person.getSecondaryRole() == Person.T_ASTECH) {
-            astechPoolMinutes = Math.max(0, astechPoolMinutes - 240);
-            astechPoolOvertime = Math.max(0, astechPoolOvertime - 120);
-        }
+        removeAstechMinutes(person);
         MekHQ.triggerEvent(new PersonRemovedEvent(person));
     }
 
@@ -5644,10 +5622,40 @@ public class Campaign implements Serializable, ITechManager {
     }
 
     public void resetAstechMinutes() {
-        astechPoolMinutes = 480 * getNumberPrimaryAstechs() + 240
-                * getNumberSecondaryAstechs();
-        astechPoolOvertime = 240 * getNumberPrimaryAstechs() + 120
-                * getNumberSecondaryAstechs();
+        astechPoolMinutes = getPossibleAstechPoolMinutes();
+        astechPoolOvertime = astechPoolMinutes / 2;
+    }
+    
+    /**
+     * Updates the campaign's "astech minutes" figure after a person has been added, based on role.
+     * Similar logic to resetAstech minutes but it's inefficient to re-count everyone.
+     * @param p Person to process
+     */
+    private void addAstechMinutes(Person p) {
+        if (p.getPrimaryRole() == Person.T_ASTECH) {
+            astechPoolMinutes += Unit.TECH_WORK_DAY;
+            astechPoolOvertime += Unit.TECH_WORK_DAY / 2;
+        }
+        if (p.getSecondaryRole() == Person.T_ASTECH) {
+            astechPoolMinutes += Unit.TECH_WORK_DAY / 2;
+            astechPoolOvertime += Unit.TECH_WORK_DAY / 4;
+        }
+    }
+    
+    /**
+     * Updates the campaign's "astech minutes" figure after a person has been removed, based on role.
+     * Similar logic to resetAstech minutes but it's inefficient to re-count everyone.
+     * @param p Person to process
+     */
+    private void removeAstechMinutes(Person p) {
+        if (p.getPrimaryRole() == Person.T_ASTECH) {
+            astechPoolMinutes += Unit.TECH_WORK_DAY;
+            astechPoolOvertime += Unit.TECH_WORK_DAY / 2;
+        }
+        if (p.getSecondaryRole() == Person.T_ASTECH) {
+            astechPoolMinutes += Unit.TECH_WORK_DAY / 2;
+            astechPoolOvertime += Unit.TECH_WORK_DAY / 4;
+        }
     }
 
     public void setAstechPoolMinutes(int minutes) {
@@ -5667,11 +5675,11 @@ public class Campaign implements Serializable, ITechManager {
     }
 
     public int getPossibleAstechPoolMinutes() {
-        return 480 * getNumberPrimaryAstechs() + 240 * getNumberSecondaryAstechs();
+        return Unit.TECH_WORK_DAY * getNumberPrimaryAstechs() + Unit.TECH_WORK_DAY / 2 * getNumberSecondaryAstechs();
     }
 
     public int getPossibleAstechPoolOvertime() {
-        return 240 * getNumberPrimaryAstechs() + 120 * getNumberSecondaryAstechs();
+        return Unit.TECH_WORK_DAY / 2 * getNumberPrimaryAstechs() + Unit.TECH_WORK_DAY / 4 * getNumberSecondaryAstechs();
     }
 
     public void setAstechPool(int size) {
@@ -5692,16 +5700,16 @@ public class Campaign implements Serializable, ITechManager {
 
     public void increaseAstechPool(int i) {
         astechPool += i;
-        astechPoolMinutes += (480 * i);
-        astechPoolOvertime += (240 * i);
+        astechPoolMinutes += (Unit.TECH_WORK_DAY * i);
+        astechPoolOvertime += (Unit.TECH_WORK_DAY / 2 * i);
         MekHQ.triggerEvent(new AstechPoolChangedEvent(this, i));
     }
 
     public void decreaseAstechPool(int i) {
         astechPool = Math.max(0, astechPool - i);
         // always assume that we fire the ones who have not yet worked
-        astechPoolMinutes = Math.max(0, astechPoolMinutes - 480 * i);
-        astechPoolOvertime = Math.max(0, astechPoolOvertime - 240 * i);
+        astechPoolMinutes = Math.max(0, astechPoolMinutes - Unit.TECH_WORK_DAY * i);
+        astechPoolOvertime = Math.max(0, astechPoolOvertime - Unit.TECH_WORK_DAY / 2 * i);
         MekHQ.triggerEvent(new AstechPoolChangedEvent(this, -i));
     }
 

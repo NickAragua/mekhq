@@ -802,7 +802,7 @@ public class UnitTableMouseAdapter extends MouseInputAdapter implements
                 for (Person tech : gui.getCampaign().getTechs()) {
                     if (tech.canTech(unit.getEntity())
                             && (tech.getMaintenanceTimeUsing() + unit
-                                    .getMaintenanceTime()) <= 480) {
+                                    .getMaintenanceTime()) <= Unit.TECH_WORK_DAY) {
                         String skillLvl = "Unknown";
                         if (null != tech.getSkillForWorkingOn(unit)) {
                             skillLvl = SkillType

@@ -1560,7 +1560,7 @@ public class PersonnelTableMouseAdapter extends MouseInputAdapter implements
                         }
                     }
                     if (unit.canTakeTech() && person.canTech(unit.getEntity())
-                            && (person.getMaintenanceTimeUsing() + unit.getMaintenanceTime() <= 480)) {
+                            && (person.getMaintenanceTimeUsing() + unit.getMaintenanceTime() <= Unit.TECH_WORK_DAY)) {
                         cbMenuItem = new JCheckBoxMenuItem(String.format(resourceMap.getString("maintenanceTimeDesc.format"), //$NON-NLS-1$
                             unit.getName(), unit.getMaintenanceTime()));
                         // TODO: check the box

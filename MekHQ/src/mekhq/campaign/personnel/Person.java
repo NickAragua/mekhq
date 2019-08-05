@@ -3174,12 +3174,12 @@ public class Person implements Serializable, MekHqXmlSerializable {
 
     public void resetMinutesLeft() {
         if (isTechPrimary() || getPrimaryRole() == T_DOCTOR) {
-            this.minutesLeft = 480;
-            this.overtimeLeft = 240;
+            this.minutesLeft = Unit.TECH_WORK_DAY;
+            this.overtimeLeft = Unit.TECH_WORK_DAY / 2;
         }
         if (isTechSecondary() || getSecondaryRole() == T_DOCTOR) {
-            this.minutesLeft = 240;
-            this.overtimeLeft = 240;
+            this.minutesLeft = Unit.TECH_WORK_DAY / 2;
+            this.overtimeLeft = Unit.TECH_WORK_DAY / 4;
         }
     }
 

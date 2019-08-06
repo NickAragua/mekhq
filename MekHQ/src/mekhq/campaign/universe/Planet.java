@@ -761,10 +761,6 @@ public class Planet implements Serializable {
         });
     }
     
-    public void setPressure(int value) {
-        pressure = value;
-    }
-    
     public String getPressureName(DateTime when) {
         Integer currentPressure = getPressure(when);
         return null != currentPressure ? PlanetaryConditions.getAtmosphereDisplayableName(currentPressure) : "unknown";

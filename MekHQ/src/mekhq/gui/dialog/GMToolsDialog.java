@@ -221,7 +221,7 @@ public class GMToolsDialog extends JDialog implements ActionListener {
                 sgen.initializeSystem();
                 sgen.initializeOrbitalSlots();
                 sgen.fillOrbitalSlots();
-                txtOutput.setText(sgen.getOutput());
+                txtOutput.setText(sgen.getOutput(false));
             };        
         });
         

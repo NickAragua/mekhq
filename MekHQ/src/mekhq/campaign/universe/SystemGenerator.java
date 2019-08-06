@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.joda.time.DateTime;
 
 import megamek.common.Compute;
 import megamek.common.PlanetaryConditions;
+import mekhq.campaign.universe.Planet.PlanetaryEvent;
 
 public class SystemGenerator {
     private int ATMO_GAS_GIANT = -1;
@@ -20,6 +20,10 @@ public class SystemGenerator {
     private Map<PlanetType, Integer> baseDiameters;
     private Map<PlanetType, Integer> diameterIncrement;
     private Map<PlanetType, Integer> numDiameterDice;
+    private Map<Integer, Map<Double, Integer>> starHabMods;
+    
+    private Map<Integer, Double> atmoTemperatureMultipliers;
+    private TreeMap<Integer, Integer> waterPercentages;
     
     // nice and complex data structure.
     // first key is the 1d6 roll on CamOps moons table
@@ -37,9 +41,15 @@ public class SystemGenerator {
     private Planet currentStar;
     private List<Planet> stellarOrbitalSlots;
     private Map<Integer, List<Planet>> satellites; 
+    double outerLifeZone;
+    double innerLifeZone;
+    
+    private DateTime dateTime;
     private Random rng;
     
+    
     public SystemGenerator() {
+        dateTime = new DateTime(3060, 1, 1, 1, 1);
         rng = new Random(DateTime.now().getMillis());
         
         // camops, page 102, orbital placement table
@@ -213,7 +223,6 @@ public class SystemGenerator {
         moonDiceModifiers.get(5).get(PlanetType.IceGiant).put(PlanetType.DwarfTerrestrial, -4);
         
         ringOdds = new TreeMap<>();
-        ringOdds = new TreeMap<>();
         ringOdds.put(1, new HashMap<>());
         ringOdds.get(1).put(PlanetType.GasGiant, 3);
         ringOdds.put(3, new HashMap<>());
@@ -224,6 +233,30 @@ public class SystemGenerator {
         ringOdds.get(5).put(PlanetType.GiantTerrestrial, 2);
         ringOdds.get(5).put(PlanetType.GasGiant, 4);
         ringOdds.get(5).put(PlanetType.IceGiant, 3);
+        
+        atmoTemperatureMultipliers = new HashMap<>();
+        atmoTemperatureMultipliers.put(PlanetaryConditions.ATMO_THIN, .95);
+        atmoTemperatureMultipliers.put(PlanetaryConditions.ATMO_STANDARD, .9);
+        atmoTemperatureMultipliers.put(PlanetaryConditions.ATMO_HIGH, .8);
+        atmoTemperatureMultipliers.put(PlanetaryConditions.ATMO_VHIGH, .5);
+        
+        starHabMods = new HashMap<>();
+        
+        waterPercentages = new TreeMap<>();
+        waterPercentages.put(-1, 0);
+        waterPercentages.put(0, 5);
+        waterPercentages.put(1, 10);
+        waterPercentages.put(2, 20);
+        waterPercentages.put(3, 30);
+        waterPercentages.put(4, 40);
+        waterPercentages.put(5, 40);
+        waterPercentages.put(6, 50);
+        waterPercentages.put(7, 50);
+        waterPercentages.put(8, 60);
+        waterPercentages.put(9, 70);
+        waterPercentages.put(10, 80);
+        waterPercentages.put(11, 90);
+        waterPercentages.put(12, 100);
     }
     
     public Planet getCurrentPlanet() {
@@ -233,6 +266,8 @@ public class SystemGenerator {
     public void initializeSystem(Planet p) {
         currentStar = new Planet();
         currentStar.copyDataFrom(p);
+        
+        commonSystemInit();
     }
     
     public void initializeSystem(int spectralClass, int spectralSubType, String spectralType) {
@@ -240,12 +275,21 @@ public class SystemGenerator {
         currentStar.setSpectralClass(spectralClass);
         currentStar.setSubtype(spectralSubType);
         currentStar.setSpectralType(spectralType);
+        
+        commonSystemInit();
     }
     
     public void initializeSystem() {
         currentStar = new Planet();
         currentStar.setSpectralType(StarUtil.generateSpectralType(rng, true));
         currentStar.setMass(StarUtil.generateMass(rng, currentStar.getSpectralClass(), currentStar.getSubtype()));
+
+        commonSystemInit();
+    }
+    
+    private void commonSystemInit() {
+        outerLifeZone = StarUtil.getMaxLifeZone(currentStar.getSpectralClass(), currentStar.getSubtype());
+        innerLifeZone = StarUtil.getMinLifeZone(currentStar.getSpectralClass(), currentStar.getSubtype());
     }
     
     public void initializeOrbitalSlots() {
@@ -262,8 +306,7 @@ public class SystemGenerator {
     }
     
     public void fillOrbitalSlots() {
-        double outerLifeZone = StarUtil.getMaxLifeZone(currentStar.getSpectralClass(), currentStar.getSubtype());
-        double innerLifeZone = StarUtil.getMinLifeZone(currentStar.getSpectralClass(), currentStar.getSubtype());
+        
         
         for(int slot = 0; slot < stellarOrbitalSlots.size(); slot++) {
             fillOrbitalSlot(slot, outerLifeZone);
@@ -275,7 +318,6 @@ public class SystemGenerator {
         PlanetType planetType;
         int slotRoll = Compute.d6(2);
         
-        try {        
         if(p.getOrbitSemimajorAxisKm() > outerLifeZone) {
             planetType = outerSystemPlanetTypes.floorEntry(slotRoll).getValue();
         } else {
@@ -288,10 +330,6 @@ public class SystemGenerator {
         if(planetType != PlanetType.Empty) {
             fillPlanetData(p, true);
         }
-        } catch(Exception e) {
-            int alpha = 1;
-        }
-        
     }
     
     private void fillPlanetData(Planet p, boolean canHaveSatellites) {
@@ -299,17 +337,19 @@ public class SystemGenerator {
         setDensity(p);
         setDayLength(p);
         
-        if(p.getPlanetType() != PlanetType.AsteroidBelt) {
-            setGravity(p);
-            setEscapeVelocity(p);
-        }
+        setGravity(p);
+        setEscapeVelocity(p);
         
         populateMoons(p);
         setAtmosphere(p);
+        setTemperature(p);
+        setHabitabilityIndex(p);
+        setHabitabilityDetails(p);
     }
     
     private void setDiameter(Planet p) {
         if(!baseDiameters.containsKey(p.getPlanetType())) {
+            p.setRadius(0);
             return;
         }
         
@@ -328,6 +368,9 @@ public class SystemGenerator {
         // yeah, I know, giant case statement, but density formulas are weird and can't really be reduced to
         // similar equations.
         switch(p.getPlanetType()) {
+        case AsteroidBelt:
+            p.setDensity(0);
+            break;
         case SmallAsteroid:
         case MediumAsteroid:
             p.setDensity(Math.pow(Compute.d6(), 1.15));
@@ -440,6 +483,7 @@ public class SystemGenerator {
     
     private void addMoonToPlanet(Planet p, PlanetType moonType) {
         Planet moon = new Planet();
+        moon.setOrbitSemimajorAxis(p.getOrbitSemimajorAxis());
         moon.setPlanetType(moonType);
         fillPlanetData(moon, false);
         if(!satellites.containsKey(p.getSystemPosition())) {
@@ -458,73 +502,170 @@ public class SystemGenerator {
         if((p.getPlanetType() == PlanetType.Terrestrial) ||
                 (p.getPlanetType() == PlanetType.GiantTerrestrial) && (gtAtmoRoll == 5)) {
             int atmoRoll = Compute.d6(2);
-            p.setPressure(atmoTypes.floorEntry(atmoRoll).getValue());
+            
+            if(p.getOrbitSemimajorAxisKm() < innerLifeZone) {
+                atmoRoll -= 2;
+            }
+            
+            double atmoRollMultiplier = p.getEscapeVelocity() / 11186.0;
+            atmoRoll = (int) Math.ceil(atmoRoll * atmoRollMultiplier);
+            
+            getEvent(p).pressure = atmoTypes.floorEntry(atmoRoll).getValue();
         } else if((p.getPlanetType() == PlanetType.GasGiant) ||
                 (p.getPlanetType() == PlanetType.IceGiant) ||
                 (p.getPlanetType() == PlanetType.GiantTerrestrial)) {
-            p.setPressure(ATMO_GAS_GIANT);
+            getEvent(p).pressure = ATMO_GAS_GIANT;
         } else {
-            p.setPressure(PlanetaryConditions.ATMO_VACUUM);
+            getEvent(p).pressure = PlanetaryConditions.ATMO_VACUUM;
         }
     }
     
-    public String getOutput() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<html>");
-        sb.append(String.format("Star, class %s, # slots %d", currentStar.getSpectralTypeNormalized(), stellarOrbitalSlots.size()));
-        sb.append("<br/>\n");
+    private void setTemperature(Planet p) {
+        double luminosity = StarUtil.getAvgLuminosity(currentStar.getSpectralClass(), currentStar.getSubtype());
+        double starDistMultiplier = atmoTemperatureMultipliers.containsKey(p.getPressure(dateTime)) ?
+                atmoTemperatureMultipliers.get(p.getPressure(dateTime)) : 1.0;
+        double starDistInAU = p.getOrbitSemimajorAxisKm() / StarUtil.AU * starDistMultiplier;                    
+        double avgTemp = 277 * Math.pow(luminosity, .25) * Math.sqrt(1 / starDistInAU);
+        getEvent(p).temperature = (int) Math.ceil(avgTemp);
+    }
+    
+    private void setHabitabilityIndex(Planet p) {
+        boolean isHabitable = false;
         
-        for(int slotIndex = 0; slotIndex < stellarOrbitalSlots.size(); slotIndex++) {
-            Planet p = stellarOrbitalSlots.get(slotIndex);
-            sb.append(String.format("Orbit %d:", slotIndex + 1));
-            sb.append("<br/>\n");
-            sb.append(getPlanetOutput(p));
-            sb.append("<br/>\n\n");
+        if(p.getPressure(dateTime) == PlanetaryConditions.ATMO_THIN ||
+            p.getPressure(dateTime) == PlanetaryConditions.ATMO_STANDARD||
+            p.getPressure(dateTime) == PlanetaryConditions.ATMO_HIGH) {
+            int habMod = starHabMods.containsKey(currentStar.getSpectralClass()) &&
+                    starHabMods.get(currentStar.getSpectralClass()).containsKey(currentStar.getSubtype()) ?
+                            starHabMods.get(currentStar.getSpectralClass()).get(currentStar.getSubtype()) : 0;   
+            if(p.getPressure(dateTime) == PlanetaryConditions.ATMO_THIN ||
+                    p.getPressure(dateTime) == PlanetaryConditions.ATMO_HIGH) {
+                habMod -= 1;
+            }
+            
+            if(p.getPlanetType() == PlanetType.GiantTerrestrial) {
+                habMod -= 2;
+            }
+            
+            int habRoll = Compute.d6(2) + habMod;
+            isHabitable = habRoll >= 9;
         }
         
-        sb.append("</html>");
+        getEvent(p).habitability = isHabitable ? 1 : 0;
+    }
+    
+    private void setHabitabilityDetails(Planet p) {
+        double starDistInAU = p.getOrbitSemimajorAxisKm() / StarUtil.AU;
+        double lifeZoneInnerEdge = innerLifeZone / StarUtil.AU;
+        double lifeZoneOuterEdge = outerLifeZone / StarUtil.AU;
+        
+        // if gas giant moon, extend outer edge by 20%
+        double lifeZoneMultiplier = (starDistInAU - lifeZoneInnerEdge) / (lifeZoneOuterEdge - lifeZoneInnerEdge);
+        double escapeVelocityMultiplier = p.getEscapeVelocity() / 11186.0;
+        
+        if(p.getGravity() < .5 ||
+                p.getPressure(dateTime) < PlanetaryConditions.ATMO_THIN ||
+                p.getPressure(dateTime) == ATMO_GAS_GIANT ||
+                p.getTemperature(dateTime) > 323) {
+           getEvent(p).percentWater = 0;
+        } else {
+            double surfaceWaterRoll = Compute.d6(2);
+            surfaceWaterRoll *= lifeZoneMultiplier;
+            surfaceWaterRoll *= escapeVelocityMultiplier;
+            surfaceWaterRoll += p.getPlanetType() == PlanetType.GiantTerrestrial ? 3 : 0;
+            surfaceWaterRoll = Math.ceil(surfaceWaterRoll);
+            surfaceWaterRoll = Math.max(0, surfaceWaterRoll);
+            surfaceWaterRoll = Math.min(12, surfaceWaterRoll);
+            
+            getEvent(p).percentWater = waterPercentages.get((int) surfaceWaterRoll);
+        }
+        
+        
+    }
+    
+    public String getOutput(boolean html) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(html ? "<html>" : "");
+        appendLine(sb, String.format("Star, class %s, # slots %d", currentStar.getSpectralTypeNormalized(), stellarOrbitalSlots.size()), html);
+                
+        for(int slotIndex = 0; slotIndex < stellarOrbitalSlots.size(); slotIndex++) {
+            Planet p = stellarOrbitalSlots.get(slotIndex);
+            appendLine(sb, String.format("Orbit %d:", slotIndex + 1), html);
+            appendLine(sb, getPlanetOutput(p, html), html);
+        }
+        
+        sb.append(html ? "</html>" : "");
         return sb.toString();
     }
     
-    private String getPlanetOutput(Planet p) {
+    private String getPlanetOutput(Planet p, boolean html) {
+        return getPlanetOutput(p, html, 0);
+    }
+        
+    private String getPlanetOutput(Planet p, boolean html, int tabCount) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<br/>\n");
-        sb.append(p.getPlanetType().toString());
-        sb.append("<br/>\n");
+        appendLine(sb, p.getPlanetType().toString(), html);
         
         if(p.getPlanetType() != PlanetType.AsteroidBelt &&
                 p.getPlanetType() != PlanetType.Empty) {
-            sb.append(String.format("Diameter %.4f<br/>\n", p.getRadius()));
-            sb.append(String.format("Density: %.4f<br/>\n", p.getDensity()));
-            sb.append(String.format("Day Length: %.4f<br/>\n", p.getDayLength()));
-            sb.append(String.format("<b>Gravity: %.4f</b><br/>\n", p.getGravity()));
-            sb.append(String.format("Escape Velocity: %.4f<br/>\n", p.getEscapeVelocity()));
+            String lifeZoneIndicator = "inner system life zone";
+            if(p.getOrbitSemimajorAxisKm() > outerLifeZone) {
+                lifeZoneIndicator = "outer system";
+            } else if(p.getOrbitSemimajorAxisKm() < innerLifeZone) {
+                lifeZoneIndicator = "inner system";
+            }
             
-            if(p.getPressure(new DateTime(3060, 1, 1, 1, 1)) == ATMO_GAS_GIANT) {
-                sb.append(String.format("Atmospheric Pressure: Crushing\n"));
+            appendLine(sb, String.format("Distance (AU) %.2f (%s)", p.getOrbitSemimajorAxisKm() / StarUtil.AU, lifeZoneIndicator), html, tabCount);
+            appendLine(sb, String.format("Diameter %.2f", p.getRadius()), html, tabCount);
+            appendLine(sb, String.format("Density: %.2f", p.getDensity()), html, tabCount);
+            appendLine(sb, String.format("Day Length: %.2f", p.getDayLength()), html, tabCount);
+            appendLine(sb, String.format("Gravity: %.2f", p.getGravity()), html, tabCount);
+            appendLine(sb, String.format("Escape Velocity: %.2f", p.getEscapeVelocity()), html, tabCount);
+            
+            if(p.getPressure(dateTime) == ATMO_GAS_GIANT) {
+                appendLine(sb, String.format("Atmospheric Pressure: Crushing"), html, tabCount);
             } else {
-                sb.append(String.format("Atmospheric Pressure: %s<br/>\n", p.getPressureName(new DateTime(3060, 1, 1, 1, 1))));
+                appendLine(sb, String.format("Atmospheric Pressure: %s", p.getPressureName(dateTime)), html, tabCount);
+                appendLine(sb, String.format("Avg Surface Temp: %d K", p.getTemperature(dateTime)), html, tabCount);
+                appendLine(sb, String.format("Habitable: %s", p.getHabitability(dateTime) > 0 ? "Yes" : "No"), html, tabCount);
+                appendLine(sb, String.format("Surface Water: %d%%", p.getPercentWater(dateTime)), html, tabCount);
             }
-            
-            boolean hasSatellites = p.getSatellites() != null && p.getSatellites().size() > 0;
-            if(hasSatellites) {
-                sb.append(p.getSatelliteDescription());
-                sb.append("<br/>\n");
-            }
+        }
+        
+        boolean hasSatellites = p.getSatellites() != null && p.getSatellites().size() > 0;
+        if(hasSatellites) {
+            appendLine(sb, p.getSatelliteDescription(), html, tabCount);
         }
         
         if(satellites.containsKey(p.getSystemPosition())) {
             for(Planet moon : satellites.get(p.getSystemPosition())) {
                 if(p.getPlanetType() == PlanetType.AsteroidBelt) {
-                    sb.append("\tMajor Asteroid: <br/>\n");
+                    appendLine(sb, "Major Asteroid: ", html, tabCount);
                 } else {
-                    sb.append("\tSatellite: <br/>\n");
+                    appendLine(sb, "Satellite: ", html, tabCount);
                 }
-                sb.append(getPlanetOutput(moon));
+                appendLine(sb, getPlanetOutput(moon, html, 1), html, 1);
             }
         }
         
         return sb.toString();
+    }
+    
+    private void appendLine(StringBuilder sb, String text, boolean html) {
+        appendLine(sb, text, html, 0);
+    }
+    
+    private void appendLine(StringBuilder sb, String text, boolean html, int tabCount) {
+        for(int x = 0; x < tabCount; x++) {
+            sb.append("\t");
+        }
+        
+        sb.append(text);
+        sb.append(html ? "<br/>" : "\n");
+    }
+    
+    private PlanetaryEvent getEvent(Planet p) {
+        return p.getOrCreateEvent(dateTime);
     }
     
     /**

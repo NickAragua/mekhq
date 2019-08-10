@@ -15,6 +15,8 @@ import mekhq.campaign.universe.Planet.PlanetaryEvent;
 
 public class SystemGenerator {
     private int ATMO_GAS_GIANT = -1;
+    private int SPECIAL_COLONY = 11;
+    private int SPECIAL_LOST_COLONY = 12;
     
     private List<Double> baseAUs = new ArrayList<>();
     private Map<PlanetType, Integer> baseDiameters;
@@ -24,6 +26,22 @@ public class SystemGenerator {
     
     private Map<Integer, Double> atmoTemperatureMultipliers;
     private TreeMap<Integer, Integer> waterPercentages;
+    
+    private TreeMap<Integer, String> unbreathableAtmoPrimaryGases;
+    private TreeMap<Integer, String> unbreathableAtmoSecondaryGases;
+    private TreeMap<Integer, String> unbreathableAtmoTraceGases;
+    private TreeMap<Integer, String> unbreathableAtmoSpecialTraceGases;
+    
+    private TreeMap<Integer, String> habitableAtmoCompositions;
+    private TreeMap<Integer, Integer> habitableTemps;
+    private TreeMap<Integer, LifeForm> lifeForms;
+    
+    private TreeMap<Integer, String> specials;
+    
+    private TreeMap<Integer, TreeMap<Integer, Integer>> starLeaguePopulationMultipliers;
+    private TreeMap<Integer, TreeMap<Integer, Integer>> starLeaguePopulationDice;
+    private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationMultipliers;
+    private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationDice;
     
     // nice and complex data structure.
     // first key is the 1d6 roll on CamOps moons table
@@ -243,7 +261,7 @@ public class SystemGenerator {
         starHabMods = new HashMap<>();
         
         waterPercentages = new TreeMap<>();
-        waterPercentages.put(-1, 0);
+        waterPercentages.put(Integer.MIN_VALUE, 0);
         waterPercentages.put(0, 5);
         waterPercentages.put(1, 10);
         waterPercentages.put(2, 20);
@@ -257,6 +275,79 @@ public class SystemGenerator {
         waterPercentages.put(10, 80);
         waterPercentages.put(11, 90);
         waterPercentages.put(12, 100);
+        
+        unbreathableAtmoPrimaryGases = new TreeMap<>();
+        unbreathableAtmoPrimaryGases.put(Integer.MIN_VALUE, "Methane");
+        unbreathableAtmoPrimaryGases.put(4, "Ammonia");
+        unbreathableAtmoPrimaryGases.put(6, "Nitrogen");
+        unbreathableAtmoPrimaryGases.put(10, "Carbon Dioxide");
+        unbreathableAtmoSecondaryGases = new TreeMap<>();
+        unbreathableAtmoSecondaryGases.put(Integer.MIN_VALUE, "Methane");
+        unbreathableAtmoSecondaryGases.put(3, "Ammonia");
+        unbreathableAtmoSecondaryGases.put(7, "Carbon Dioxide");
+        unbreathableAtmoSecondaryGases.put(10, "Nitrogen");
+        unbreathableAtmoTraceGases = new TreeMap<>();
+        unbreathableAtmoTraceGases.put(Integer.MIN_VALUE, "Chlorine");
+        unbreathableAtmoTraceGases.put(3, "");
+        unbreathableAtmoTraceGases.put(4, "Sulfur Dioxide");
+        unbreathableAtmoTraceGases.put(5, "Carbon Dioxide");
+        unbreathableAtmoTraceGases.put(6, "Argon");
+        unbreathableAtmoTraceGases.put(7, "Methane");
+        unbreathableAtmoTraceGases.put(8, "Water Vapor");
+        unbreathableAtmoTraceGases.put(9, "Argon");
+        unbreathableAtmoTraceGases.put(10, "Nitrous Oxide");
+        unbreathableAtmoSpecialTraceGases = new TreeMap<>();
+        unbreathableAtmoSpecialTraceGases.put(Integer.MIN_VALUE, "Helium");
+        unbreathableAtmoSpecialTraceGases.put(3, "Complex Hydrocarbons");
+        unbreathableAtmoSpecialTraceGases.put(4, "Nitric Acid");
+        unbreathableAtmoSpecialTraceGases.put(5, "Phosphine");
+        unbreathableAtmoSpecialTraceGases.put(6, "Hydrogen Peroxide");
+        unbreathableAtmoSpecialTraceGases.put(7, "Hydrochloric Acid");
+        unbreathableAtmoSpecialTraceGases.put(8, "Hydrogen Sulfide");
+        unbreathableAtmoSpecialTraceGases.put(9, "Simple Hydrocarbons");
+        unbreathableAtmoSpecialTraceGases.put(10, "Sulfuric Acid");
+        unbreathableAtmoSpecialTraceGases.put(11, "Carbonyl Sulfide");
+        unbreathableAtmoSpecialTraceGases.put(12, "Hydrofluoric Acid");
+        
+        habitableAtmoCompositions = new TreeMap<>();
+        habitableAtmoCompositions.put(Integer.MIN_VALUE, "Toxic");
+        habitableAtmoCompositions.put(2, "Tainted");
+        habitableAtmoCompositions.put(7, "Breathable");
+        
+        habitableTemps = new TreeMap<>();
+        habitableTemps.put(Integer.MIN_VALUE, 317);
+        habitableTemps.put(1, 307);
+        habitableTemps.put(5, 297);
+        habitableTemps.put(10, 287);
+        
+        lifeForms = new TreeMap<>();
+        lifeForms.put(Integer.MIN_VALUE, LifeForm.MICROBE);
+        lifeForms.put(1, LifeForm.PLANT);
+        lifeForms.put(2, LifeForm.INSECT);
+        lifeForms.put(3, LifeForm.FISH);
+        lifeForms.put(5, LifeForm.AMPH);
+        lifeForms.put(7, LifeForm.REPTILE);
+        lifeForms.put(9, LifeForm.BIRD);
+        lifeForms.put(11, LifeForm.MAMMAL);
+        
+        specials = new TreeMap<>();
+        specials.put(Integer.MIN_VALUE, "");
+        specials.put(3, "Recent Natural Disaster");
+        specials.put(4, "Intense Volcanic Activity");
+        specials.put(5, "Intense Seismic Activity");
+        specials.put(6, "Disease");
+        specials.put(7, "Incompatible Biochemistry");
+        specials.put(8, "Hostile Life Forms");
+        specials.put(9, "Abandoned Star League Facility");
+        specials.put(10, "Occupied Star League Facility");
+        specials.put(11, "Colony");
+        specials.put(12, "Lost Colony");
+        
+        starLeaguePopulationMultipliers = new TreeMap<>();
+        /*
+        private TreeMap<Integer, TreeMap<Integer, Integer>> starLeaguePopulationDice;
+        private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationMultipliers;
+        private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationDice;*/
     }
     
     public Planet getCurrentPlanet() {
@@ -342,9 +433,20 @@ public class SystemGenerator {
         
         populateMoons(p);
         setAtmosphere(p);
-        setTemperature(p);
         setHabitabilityIndex(p);
-        setHabitabilityDetails(p);
+        
+        if(p.getHabitability(dateTime) == 0) { 
+            setUnbreathableAtmosphereGasContent(p);
+            setUninhabitableTemperature(p);
+        } else {
+            setBreathableAtmosphereGasContent(p);
+            setHabitableTemperature(p);
+        }
+        
+        setWaterPercentage(p);
+        setHighestLife(p);
+        setSpecial(p);
+        setColony(p);
     }
     
     private void setDiameter(Planet p) {
@@ -520,7 +622,7 @@ public class SystemGenerator {
         }
     }
     
-    private void setTemperature(Planet p) {
+    private void setUninhabitableTemperature(Planet p) {
         double luminosity = StarUtil.getAvgLuminosity(currentStar.getSpectralClass(), currentStar.getSubtype());
         double starDistMultiplier = atmoTemperatureMultipliers.containsKey(p.getPressure(dateTime)) ?
                 atmoTemperatureMultipliers.get(p.getPressure(dateTime)) : 1.0;
@@ -535,9 +637,7 @@ public class SystemGenerator {
         if(p.getPressure(dateTime) == PlanetaryConditions.ATMO_THIN ||
             p.getPressure(dateTime) == PlanetaryConditions.ATMO_STANDARD||
             p.getPressure(dateTime) == PlanetaryConditions.ATMO_HIGH) {
-            int habMod = starHabMods.containsKey(currentStar.getSpectralClass()) &&
-                    starHabMods.get(currentStar.getSpectralClass()).containsKey(currentStar.getSubtype()) ?
-                            starHabMods.get(currentStar.getSpectralClass()).get(currentStar.getSubtype()) : 0;   
+            int habMod = getStarHabitabilityMod();   
             if(p.getPressure(dateTime) == PlanetaryConditions.ATMO_THIN ||
                     p.getPressure(dateTime) == PlanetaryConditions.ATMO_HIGH) {
                 habMod -= 1;
@@ -554,13 +654,7 @@ public class SystemGenerator {
         getEvent(p).habitability = isHabitable ? 1 : 0;
     }
     
-    private void setHabitabilityDetails(Planet p) {
-        double starDistInAU = p.getOrbitSemimajorAxisKm() / StarUtil.AU;
-        double lifeZoneInnerEdge = innerLifeZone / StarUtil.AU;
-        double lifeZoneOuterEdge = outerLifeZone / StarUtil.AU;
-        
-        // if gas giant moon, extend outer edge by 20%
-        double lifeZoneMultiplier = (starDistInAU - lifeZoneInnerEdge) / (lifeZoneOuterEdge - lifeZoneInnerEdge);
+    private void setWaterPercentage(Planet p) {
         double escapeVelocityMultiplier = p.getEscapeVelocity() / 11186.0;
         
         if(p.getGravity() < .5 ||
@@ -570,17 +664,155 @@ public class SystemGenerator {
            getEvent(p).percentWater = 0;
         } else {
             double surfaceWaterRoll = Compute.d6(2);
-            surfaceWaterRoll *= lifeZoneMultiplier;
+            surfaceWaterRoll *= calculateLifeZoneMultiplier(p);
             surfaceWaterRoll *= escapeVelocityMultiplier;
             surfaceWaterRoll += p.getPlanetType() == PlanetType.GiantTerrestrial ? 3 : 0;
             surfaceWaterRoll = Math.ceil(surfaceWaterRoll);
-            surfaceWaterRoll = Math.max(0, surfaceWaterRoll);
-            surfaceWaterRoll = Math.min(12, surfaceWaterRoll);
-            
-            getEvent(p).percentWater = waterPercentages.get((int) surfaceWaterRoll);
+            getEvent(p).percentWater = waterPercentages.floorEntry((int) surfaceWaterRoll).getValue();
+        }
+    }
+    
+    private void setUnbreathableAtmosphereGasContent(Planet p) {
+        // if it doesn't have an atmosphere, it doesn't have an atmosphere
+        if(p.getPressure(dateTime) < PlanetaryConditions.ATMO_TRACE) {
+            return;
         }
         
+        int gasModifier = 0;
+        if(p.getOrbitSemimajorAxisKm() < innerLifeZone) {
+            gasModifier += 2;
+        } else if(p.getOrbitSemimajorAxisKm() > outerLifeZone) {
+            gasModifier -= 2;
+        }
         
+        if(p.getEscapeVelocity() > 12000) {
+            gasModifier--;
+        } else if(p.getEscapeVelocity() < 7000) {
+            gasModifier++;
+        }
+        
+        int secondaryGasRoll = Compute.d6(2) + gasModifier;
+        String secondaryGas = unbreathableAtmoSecondaryGases.floorEntry(secondaryGasRoll).getValue();
+        int secondaryGasPercentage = Compute.d6(5);
+        
+        int traceGasRoll = Compute.d6(2) + gasModifier;
+        Integer secondaryTraceGasRoll = null;
+        if(traceGasRoll == 12) {
+            secondaryTraceGasRoll = Compute.d6(2) + gasModifier;
+            traceGasRoll = Math.max(11, Compute.d6(2) + gasModifier);
+        }
+        
+        String traceGas = unbreathableAtmoTraceGases.floorEntry(traceGasRoll).getValue();
+        String secondaryTraceGas = secondaryTraceGasRoll != null ? 
+                unbreathableAtmoSpecialTraceGases.floorEntry(secondaryTraceGasRoll).getValue() : "";
+        
+        int traceGasPercentage = Compute.d6() / 2;
+        int secondaryTraceGasPercentage = secondaryTraceGas.isEmpty() ? 0 : Compute.d6() / 2;
+        
+        int primaryGasRoll = Compute.d6(2) + gasModifier;
+        String primaryGas = unbreathableAtmoPrimaryGases.floorEntry(primaryGasRoll).getValue();
+        int primaryGasPercentage = 100 - secondaryTraceGasPercentage - traceGasPercentage - secondaryGasPercentage;
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Primary: %s (%d%%)\n", primaryGas, primaryGasPercentage));
+        sb.append(String.format("Secondary: %s (%d%%)\n", secondaryGas, secondaryGasPercentage));
+        
+        if(traceGas != "None") {
+            sb.append(String.format("Trace: %s (%d%%)\n", traceGas, traceGasPercentage));
+        }
+        
+        if(!secondaryTraceGas.isEmpty()) {
+            sb.append(String.format("Trace: %s (%d%%)\n", secondaryTraceGas, secondaryTraceGasPercentage));
+        }
+        
+        getEvent(p).atmosphere = sb.toString();
+    }
+    
+    private void setBreathableAtmosphereGasContent(Planet p) {
+        int atmoRoll = Compute.d6(2);
+        if(p.getPlanetType() == PlanetType.GiantTerrestrial) {
+            atmoRoll -= 2;
+        }
+        
+        getEvent(p).atmosphere = habitableAtmoCompositions.floorEntry(atmoRoll).getValue();
+    }
+    
+    private void setHabitableTemperature(Planet p) {
+        double tempRoll = Compute.d6(2);
+        tempRoll *= calculateLifeZoneMultiplier(p);
+        tempRoll = Math.ceil(tempRoll);
+        if(p.getPressure(dateTime) <= PlanetaryConditions.ATMO_THIN) {
+            tempRoll -= 1;
+        } else if(p.getPressure(dateTime) <= PlanetaryConditions.ATMO_HIGH) {
+            tempRoll += 1;
+        }
+        
+        getEvent(p).temperature = habitableTemps.floorEntry((int) tempRoll).getValue();
+    }
+    
+    private void setHighestLife(Planet p) {
+        if(p.getHabitability(dateTime) == 0 ||
+                p.getPressure(dateTime) < PlanetaryConditions.ATMO_THIN) {
+            getEvent(p).lifeForm = LifeForm.NONE;
+            return;
+        }
+        
+        int lifeRoll = Compute.d6(2);
+        lifeRoll += getStarHabitabilityMod();
+        // hab modifier
+        
+        if(getEvent(p).habitability == 0) {
+            lifeRoll -= 4;
+        }
+        
+        getEvent(p).lifeForm = lifeForms.floorEntry(lifeRoll).getValue();
+    }
+    
+    private void setSpecial(Planet p) {
+        int specialPresenceRoll = Compute.d6(2);
+        if(specialPresenceRoll < 8) {
+            return;
+        }
+        
+        int specialModifier = 0;
+        
+        if(p.getPlanetType() == PlanetType.DwarfTerrestrial) {
+            specialModifier = 2;
+        } else if(p.getPlanetType() == PlanetType.GiantTerrestrial && p.getPressure(dateTime) != ATMO_GAS_GIANT) {
+            specialModifier = 3;
+        } else if(p.getPressure(dateTime) == ATMO_GAS_GIANT) {
+            specialModifier = 4;
+        }
+        
+        int specialRoll = Compute.d6(2) - specialModifier;
+        if(specialRoll == SPECIAL_COLONY || specialRoll == SPECIAL_LOST_COLONY) {
+            getEvent(p).populationRating = 1;
+        }
+        
+        p.setDescription(String.format("%s\n\n%s", p.getDescription(), specials.floorEntry(specialRoll).getValue()));
+    }
+    
+    private void setColony(Planet p) {
+        if(p.getPopulationRating(dateTime) > 0) {
+            //set actual population
+            // set socio-industrial ratings
+        }
+    }
+    
+    private int getStarHabitabilityMod() {
+        return starHabMods.containsKey(currentStar.getSpectralClass()) &&
+                starHabMods.get(currentStar.getSpectralClass()).containsKey(currentStar.getSubtype()) ?
+                        starHabMods.get(currentStar.getSpectralClass()).get(currentStar.getSubtype()) : 0;
+    }
+    
+    private double calculateLifeZoneMultiplier(Planet p) {
+        double starDistInAU = p.getOrbitSemimajorAxisKm() / StarUtil.AU;
+        double lifeZoneInnerEdge = innerLifeZone / StarUtil.AU;
+        double lifeZoneOuterEdge = outerLifeZone / StarUtil.AU;
+        
+        // if gas giant moon, extend outer edge by 20%
+        double lifeZoneMultiplier = (starDistInAU - lifeZoneInnerEdge) / (lifeZoneOuterEdge - lifeZoneInnerEdge);
+        return lifeZoneMultiplier;
     }
     
     public String getOutput(boolean html) {
@@ -615,8 +847,8 @@ public class SystemGenerator {
                 lifeZoneIndicator = "inner system";
             }
             
-            appendLine(sb, String.format("Distance (AU) %.2f (%s)", p.getOrbitSemimajorAxisKm() / StarUtil.AU, lifeZoneIndicator), html, tabCount);
-            appendLine(sb, String.format("Diameter %.2f", p.getRadius()), html, tabCount);
+            appendLine(sb, String.format("Distance (AU): %.2f (%s)", p.getOrbitSemimajorAxisKm() / StarUtil.AU, lifeZoneIndicator), html, tabCount);
+            appendLine(sb, String.format("Diameter: %.2f", p.getRadius()), html, tabCount);
             appendLine(sb, String.format("Density: %.2f", p.getDensity()), html, tabCount);
             appendLine(sb, String.format("Day Length: %.2f", p.getDayLength()), html, tabCount);
             appendLine(sb, String.format("Gravity: %.2f", p.getGravity()), html, tabCount);
@@ -629,6 +861,15 @@ public class SystemGenerator {
                 appendLine(sb, String.format("Avg Surface Temp: %d K", p.getTemperature(dateTime)), html, tabCount);
                 appendLine(sb, String.format("Habitable: %s", p.getHabitability(dateTime) > 0 ? "Yes" : "No"), html, tabCount);
                 appendLine(sb, String.format("Surface Water: %d%%", p.getPercentWater(dateTime)), html, tabCount);
+                
+                if(p.getPressure(dateTime) > PlanetaryConditions.ATMO_TRACE &&
+                        p.getAtmosphere(dateTime) != null) {
+                    appendLine(sb, String.format("Atmospheric Contents: %s", p.getAtmosphere(dateTime)), html, tabCount);
+                }
+                
+                if(p.getLifeForm(dateTime) != LifeForm.NONE) {
+                    appendLine(sb, String.format("Highest Native Life Form: %s", p.getLifeFormName(dateTime)), html, tabCount);
+                }
             }
         }
         

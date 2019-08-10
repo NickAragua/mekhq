@@ -524,6 +524,10 @@ public class Planet implements Serializable {
         return desc;
     }
     
+    public void setDescription(String value) {
+        desc = value;
+    }
+    
     public String getIcon() {
         return icon;
     }

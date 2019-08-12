@@ -10,13 +10,26 @@ import java.util.TreeMap;
 import org.joda.time.DateTime;
 
 import megamek.common.Compute;
+import megamek.common.EquipmentType;
 import megamek.common.PlanetaryConditions;
+import mekhq.campaign.universe.Faction.Tag;
 import mekhq.campaign.universe.Planet.PlanetaryEvent;
+import mekhq.campaign.universe.Planet.SocioIndustrialData;
 
 public class SystemGenerator {
     private int ATMO_GAS_GIANT = -1;
+    private int SPECIAL_STAR_LEAGUE_OUTPOST_ABANDONED = 9;
+    private int SPECIAL_STAR_LEAGUE_OUTPOST_OCCUPIED = 10;
     private int SPECIAL_COLONY = 11;
     private int SPECIAL_LOST_COLONY = 12;
+    
+    private int LOST_COLONY_DICE_KEY = -2;
+    private int OUTPOST_DICE_KEY = -1;
+    
+    private String ATMO_VALUE_TOXIC = "Toxic";
+    private String ATMO_VALUE_TAINTED = "Tainted";
+    
+    private int VERY_HIGH_TEMP = 317;
     
     private List<Double> baseAUs = new ArrayList<>();
     private Map<PlanetType, Integer> baseDiameters;
@@ -38,10 +51,14 @@ public class SystemGenerator {
     
     private TreeMap<Integer, String> specials;
     
+    // first key is the distance from terra in light years
+    // second key is dice roll result on 1d6
     private TreeMap<Integer, TreeMap<Integer, Integer>> starLeaguePopulationMultipliers;
     private TreeMap<Integer, TreeMap<Integer, Integer>> starLeaguePopulationDice;
     private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationMultipliers;
     private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationDice;
+    
+    private int recentColonyThreshold = 3;
     
     // nice and complex data structure.
     // first key is the 1d6 roll on CamOps moons table
@@ -59,8 +76,10 @@ public class SystemGenerator {
     private Planet currentStar;
     private List<Planet> stellarOrbitalSlots;
     private Map<Integer, List<Planet>> satellites; 
-    double outerLifeZone;
-    double innerLifeZone;
+    private List<Planet> majorRockyStellarBodies;
+    private double outerLifeZone;
+    private double innerLifeZone;
+    private double distanceToTerra;
     
     private DateTime dateTime;
     private Random rng;
@@ -133,7 +152,7 @@ public class SystemGenerator {
         numDiameterDice.put(PlanetType.IceGiant, 1);
         
         atmoTypes = new TreeMap<>();
-        atmoTypes.put(2, PlanetaryConditions.ATMO_VACUUM);
+        atmoTypes.put(Integer.MIN_VALUE, PlanetaryConditions.ATMO_VACUUM);
         atmoTypes.put(4, PlanetaryConditions.ATMO_TRACE);
         atmoTypes.put(5, PlanetaryConditions.ATMO_THIN);
         atmoTypes.put(7, PlanetaryConditions.ATMO_STANDARD);
@@ -310,12 +329,12 @@ public class SystemGenerator {
         unbreathableAtmoSpecialTraceGases.put(12, "Hydrofluoric Acid");
         
         habitableAtmoCompositions = new TreeMap<>();
-        habitableAtmoCompositions.put(Integer.MIN_VALUE, "Toxic");
-        habitableAtmoCompositions.put(2, "Tainted");
+        habitableAtmoCompositions.put(Integer.MIN_VALUE, ATMO_VALUE_TOXIC);
+        habitableAtmoCompositions.put(2, ATMO_VALUE_TAINTED);
         habitableAtmoCompositions.put(7, "Breathable");
         
         habitableTemps = new TreeMap<>();
-        habitableTemps.put(Integer.MIN_VALUE, 317);
+        habitableTemps.put(Integer.MIN_VALUE, VERY_HIGH_TEMP);
         habitableTemps.put(1, 307);
         habitableTemps.put(5, 297);
         habitableTemps.put(10, 287);
@@ -344,14 +363,140 @@ public class SystemGenerator {
         specials.put(12, "Lost Colony");
         
         starLeaguePopulationMultipliers = new TreeMap<>();
-        /*
-        private TreeMap<Integer, TreeMap<Integer, Integer>> starLeaguePopulationDice;
-        private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationMultipliers;
-        private TreeMap<Integer, TreeMap<Integer, Integer>> postStarLeaguePopulationDice;*/
+        starLeaguePopulationMultipliers.put(0, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(0).put(1, 50000000);
+        starLeaguePopulationMultipliers.get(0).put(6, 500000000);
+        starLeaguePopulationMultipliers.put(500, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(500).put(1, 10000000);
+        starLeaguePopulationMultipliers.get(500).put(6, 100000000);
+        starLeaguePopulationMultipliers.put(601, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(601).put(1, 25000000);
+        starLeaguePopulationMultipliers.get(601).put(6, 250000000);
+        starLeaguePopulationMultipliers.put(751, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(751).put(1, 500000);
+        starLeaguePopulationMultipliers.get(751).put(6, 5000000);
+        starLeaguePopulationMultipliers.put(1001, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(1001).put(1, 100000);
+        starLeaguePopulationMultipliers.get(1001).put(6, 1000000);
+        starLeaguePopulationMultipliers.put(1251, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(1251).put(1, 10000);
+        starLeaguePopulationMultipliers.get(1251).put(6, 200000);
+        starLeaguePopulationMultipliers.put(2000, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(2000).put(1, 2500);
+        starLeaguePopulationMultipliers.get(2000).put(6, 50000);
+        // outpost
+        starLeaguePopulationMultipliers.put(OUTPOST_DICE_KEY, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(OUTPOST_DICE_KEY).put(1, 2500);
+        starLeaguePopulationMultipliers.get(OUTPOST_DICE_KEY).put(6, 50000);
+        // lost colony
+        starLeaguePopulationMultipliers.put(LOST_COLONY_DICE_KEY, new TreeMap<>());
+        starLeaguePopulationMultipliers.get(LOST_COLONY_DICE_KEY).put(1, 10000);
+        starLeaguePopulationMultipliers.get(LOST_COLONY_DICE_KEY).put(6, 100000);
+        
+        starLeaguePopulationDice = new TreeMap<>();
+        starLeaguePopulationDice.put(0, new TreeMap<>());
+        starLeaguePopulationDice.get(0).put(1, 4);
+        starLeaguePopulationDice.get(0).put(6, 4);
+        starLeaguePopulationDice.put(500, new TreeMap<>());
+        starLeaguePopulationDice.get(500).put(1, 4);
+        starLeaguePopulationDice.get(500).put(6, 4);
+        starLeaguePopulationDice.put(601, new TreeMap<>());
+        starLeaguePopulationDice.get(601).put(1, 4);
+        starLeaguePopulationDice.get(601).put(6, 4);
+        starLeaguePopulationDice.put(751, new TreeMap<>());
+        starLeaguePopulationDice.get(751).put(1, 4);
+        starLeaguePopulationDice.get(751).put(6, 4);
+        starLeaguePopulationDice.put(1001, new TreeMap<>());
+        starLeaguePopulationDice.get(1001).put(1, 4);
+        starLeaguePopulationDice.get(1001).put(6, 4);
+        starLeaguePopulationDice.put(1251, new TreeMap<>());
+        starLeaguePopulationDice.get(1251).put(1, 4);
+        starLeaguePopulationDice.get(1251).put(6, 4);
+        starLeaguePopulationDice.put(2000, new TreeMap<>());
+        starLeaguePopulationDice.get(2000).put(1, 4);
+        starLeaguePopulationDice.get(2000).put(6, 4);
+        // outpost
+        starLeaguePopulationDice.put(OUTPOST_DICE_KEY, new TreeMap<>());
+        starLeaguePopulationDice.get(OUTPOST_DICE_KEY).put(1, 4);
+        starLeaguePopulationDice.get(OUTPOST_DICE_KEY).put(6, 4);
+        // lost colony
+        starLeaguePopulationDice.put(LOST_COLONY_DICE_KEY, new TreeMap<>());
+        starLeaguePopulationDice.get(LOST_COLONY_DICE_KEY).put(1, 2);
+        starLeaguePopulationDice.get(LOST_COLONY_DICE_KEY).put(6, 2);
+        
+        postStarLeaguePopulationMultipliers = new TreeMap<>();
+        postStarLeaguePopulationMultipliers.put(0, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(0).put(1, 10000);
+        postStarLeaguePopulationMultipliers.get(0).put(6, 100000);
+        postStarLeaguePopulationMultipliers.put(500, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(500).put(1, 2000000);
+        postStarLeaguePopulationMultipliers.get(500).put(6, 20000000);
+        postStarLeaguePopulationMultipliers.put(601, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(601).put(1, 50000);
+        postStarLeaguePopulationMultipliers.get(601).put(6, 1000000);
+        postStarLeaguePopulationMultipliers.put(751, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(751).put(1, 20000);
+        postStarLeaguePopulationMultipliers.get(751).put(6, 200000);
+        postStarLeaguePopulationMultipliers.put(1001, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(1001).put(1, 5000);
+        postStarLeaguePopulationMultipliers.get(1001).put(6, 50000);
+        postStarLeaguePopulationMultipliers.put(1251, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(1251).put(1, 500);
+        postStarLeaguePopulationMultipliers.get(1251).put(6, 10000);
+        postStarLeaguePopulationMultipliers.put(2000, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(2000).put(1, 100);
+        postStarLeaguePopulationMultipliers.get(2000).put(6, 2500);
+        // outpost
+        postStarLeaguePopulationMultipliers.put(OUTPOST_DICE_KEY, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(OUTPOST_DICE_KEY).put(1, 50);
+        postStarLeaguePopulationMultipliers.get(OUTPOST_DICE_KEY).put(6, 1000);
+        // lost colony
+        postStarLeaguePopulationMultipliers.put(LOST_COLONY_DICE_KEY, new TreeMap<>());
+        postStarLeaguePopulationMultipliers.get(LOST_COLONY_DICE_KEY).put(1, 0);
+        postStarLeaguePopulationMultipliers.get(LOST_COLONY_DICE_KEY).put(6, 0);
+        
+        postStarLeaguePopulationDice = new TreeMap<>();
+        postStarLeaguePopulationDice.put(0, new TreeMap<>());
+        postStarLeaguePopulationDice.get(0).put(1, 2);
+        postStarLeaguePopulationDice.get(0).put(6, 2);
+        postStarLeaguePopulationDice.put(500, new TreeMap<>());
+        postStarLeaguePopulationDice.get(500).put(1, 2);
+        postStarLeaguePopulationDice.get(500).put(6, 2);
+        postStarLeaguePopulationDice.put(601, new TreeMap<>());
+        postStarLeaguePopulationDice.get(601).put(1, 2);
+        postStarLeaguePopulationDice.get(601).put(6, 2);
+        postStarLeaguePopulationDice.put(751, new TreeMap<>());
+        postStarLeaguePopulationDice.get(751).put(1, 2);
+        postStarLeaguePopulationDice.get(751).put(6, 2);
+        postStarLeaguePopulationDice.put(1001, new TreeMap<>());
+        postStarLeaguePopulationDice.get(1001).put(1, 2);
+        postStarLeaguePopulationDice.get(1001).put(6, 2);
+        postStarLeaguePopulationDice.put(1251, new TreeMap<>());
+        postStarLeaguePopulationDice.get(1251).put(1, 2);
+        postStarLeaguePopulationDice.get(1251).put(6, 2);
+        postStarLeaguePopulationDice.put(2000, new TreeMap<>());
+        postStarLeaguePopulationDice.get(2000).put(1, 2);
+        postStarLeaguePopulationDice.get(2000).put(6, 2);
+        // outpost
+        postStarLeaguePopulationDice.put(OUTPOST_DICE_KEY, new TreeMap<>());
+        postStarLeaguePopulationDice.get(OUTPOST_DICE_KEY).put(1, 2);
+        postStarLeaguePopulationDice.get(OUTPOST_DICE_KEY).put(6, 2);
+        // lost colony
+        postStarLeaguePopulationDice.put(LOST_COLONY_DICE_KEY, new TreeMap<>());
+        postStarLeaguePopulationDice.get(LOST_COLONY_DICE_KEY).put(1, 2);
+        postStarLeaguePopulationDice.get(LOST_COLONY_DICE_KEY).put(6, 2);
     }
     
     public Planet getCurrentPlanet() {
         return currentStar;
+    }
+    
+    public void initializeSystem(double x, double y) {
+        initializeSystem();
+        currentStar.setX(x);
+        currentStar.setY(y);
+        
+        commonSystemInit();
     }
     
     public void initializeSystem(Planet p) {
@@ -367,6 +512,9 @@ public class SystemGenerator {
         currentStar.setSubtype(spectralSubType);
         currentStar.setSpectralType(spectralType);
         
+        currentStar.setX(Compute.randomInt(2500));
+        currentStar.setY(Compute.randomInt(2500));
+        
         commonSystemInit();
     }
     
@@ -374,6 +522,9 @@ public class SystemGenerator {
         currentStar = new Planet();
         currentStar.setSpectralType(StarUtil.generateSpectralType(rng, true));
         currentStar.setMass(StarUtil.generateMass(rng, currentStar.getSpectralClass(), currentStar.getSubtype()));
+        
+        currentStar.setX(Compute.randomInt(2500));
+        currentStar.setY(Compute.randomInt(2500));
 
         commonSystemInit();
     }
@@ -381,6 +532,8 @@ public class SystemGenerator {
     private void commonSystemInit() {
         outerLifeZone = StarUtil.getMaxLifeZone(currentStar.getSpectralClass(), currentStar.getSubtype());
         innerLifeZone = StarUtil.getMinLifeZone(currentStar.getSpectralClass(), currentStar.getSubtype());
+        majorRockyStellarBodies = new ArrayList<>();
+        distanceToTerra = currentStar.getDistanceTo(0, 0);
     }
     
     public void initializeOrbitalSlots() {
@@ -421,6 +574,12 @@ public class SystemGenerator {
         if(planetType != PlanetType.Empty) {
             fillPlanetData(p, true);
         }
+        
+        if(planetType == PlanetType.DwarfTerrestrial ||
+                planetType == PlanetType.Terrestrial ||
+                planetType == PlanetType.GiantTerrestrial) {
+            majorRockyStellarBodies.add(p);
+        }
     }
     
     private void fillPlanetData(Planet p, boolean canHaveSatellites) {
@@ -435,18 +594,88 @@ public class SystemGenerator {
         setAtmosphere(p);
         setHabitabilityIndex(p);
         
+        int atmoRoll = -1;
         if(p.getHabitability(dateTime) == 0) { 
             setUnbreathableAtmosphereGasContent(p);
             setUninhabitableTemperature(p);
         } else {
-            setBreathableAtmosphereGasContent(p);
+            atmoRoll = setBreathableAtmosphereGasContent(p);
             setHabitableTemperature(p);
         }
         
         setWaterPercentage(p);
         setHighestLife(p);
-        setSpecial(p);
-        setColony(p);
+        int special = setSpecial(p);
+        
+        if(special >= SPECIAL_STAR_LEAGUE_OUTPOST_ABANDONED) {
+            ColonyState colonyState = setColony(p, special);
+            setUSILR(p, colonyState == ColonyState.Recent);
+            setGovernment(p);
+            setHPG(p);
+            setRechargeStation(p);
+            
+            if(colonyState == ColonyState.Abandoned) {
+                getEvent(p).population = (long) -1;
+            }
+        }
+    }
+    
+    public void forceColony() {
+        int bestPlanetCandidateScore = Integer.MIN_VALUE;
+        Planet bestPlanet = null;
+        
+        for(Planet p : majorRockyStellarBodies) {
+            int candidateScore = 0;
+            // things we look for when building a colony:
+            // gravity between .9 and 1.1: +1
+            // atmospheric pressure between thin and very high: +1
+            // habitability = 1: +1
+            // also, if there is already a colony/abandoned colony in this system, we are done
+            
+            if(p.getPopulation(dateTime) != null && p.getPopulation(dateTime) != 0) {
+                return;
+            }
+            
+            if(p.getGravity() < 1.1 && p.getGravity() > .9) {
+                candidateScore += 1;
+            } else {
+                candidateScore -= 1;
+            }
+            
+            if(p.getPressure(dateTime) >= PlanetaryConditions.ATMO_THIN) {
+                candidateScore += 1;
+            } else if(p.getPressure(dateTime) == ATMO_GAS_GIANT) {
+                continue;
+            } else {
+                candidateScore -= 1;
+            }
+            
+            if(p.getHabitability(dateTime) > 0) {
+                candidateScore += 1;
+            } else {
+                candidateScore -= 1;
+            }
+            
+            if(candidateScore > bestPlanetCandidateScore) {
+                bestPlanetCandidateScore = candidateScore;
+                bestPlanet = p;
+            }
+        }
+        
+        int adjustedSpecialRoll = 0;
+        while(adjustedSpecialRoll < 9) {
+            adjustedSpecialRoll = Compute.d6(2);
+        }
+        
+        ColonyState colonyState = setColony(bestPlanet, adjustedSpecialRoll);
+        setUSILR(bestPlanet, colonyState == ColonyState.Recent);
+        setGovernment(bestPlanet);
+        setHPG(bestPlanet);
+        setRechargeStation(bestPlanet);
+        
+        if(colonyState == ColonyState.Abandoned) {
+            getEvent(bestPlanet).population = (long) -1;
+        }
     }
     
     private void setDiameter(Planet p) {
@@ -728,13 +957,15 @@ public class SystemGenerator {
         getEvent(p).atmosphere = sb.toString();
     }
     
-    private void setBreathableAtmosphereGasContent(Planet p) {
+    private int setBreathableAtmosphereGasContent(Planet p) {
         int atmoRoll = Compute.d6(2);
         if(p.getPlanetType() == PlanetType.GiantTerrestrial) {
             atmoRoll -= 2;
         }
         
         getEvent(p).atmosphere = habitableAtmoCompositions.floorEntry(atmoRoll).getValue();
+        
+        return atmoRoll;
     }
     
     private void setHabitableTemperature(Planet p) {
@@ -768,10 +999,10 @@ public class SystemGenerator {
         getEvent(p).lifeForm = lifeForms.floorEntry(lifeRoll).getValue();
     }
     
-    private void setSpecial(Planet p) {
+    private int setSpecial(Planet p) {
         int specialPresenceRoll = Compute.d6(2);
         if(specialPresenceRoll < 8) {
-            return;
+            return 0;
         }
         
         int specialModifier = 0;
@@ -785,18 +1016,285 @@ public class SystemGenerator {
         }
         
         int specialRoll = Compute.d6(2) - specialModifier;
-        if(specialRoll == SPECIAL_COLONY || specialRoll == SPECIAL_LOST_COLONY) {
-            getEvent(p).populationRating = 1;
-        }
-        
         p.setDescription(String.format("%s\n\n%s", p.getDescription(), specials.floorEntry(specialRoll).getValue()));
+        
+        return specialRoll;
     }
     
-    private void setColony(Planet p) {
-        if(p.getPopulationRating(dateTime) > 0) {
-            //set actual population
-            // set socio-industrial ratings
+    private ColonyState setColony(Planet p, int specialRoll) {
+        int populationDice = 0;
+        int populationMultiplier = 0;
+        boolean recentColony = Compute.d6() > recentColonyThreshold;
+        ColonyState colonyState = ColonyState.None;
+        int populationRoll = Compute.d6();
+        
+        // colony has a 50/50 chance of being occupied
+        if(specialRoll == SPECIAL_COLONY) {
+            if(Compute.d6() < 4) {
+                colonyState = ColonyState.Abandoned;
+            }
+            
+            populationDice = recentColony ?
+                    starLeaguePopulationDice.floorEntry((int) distanceToTerra).getValue().floorEntry(populationRoll).getValue() :
+                    postStarLeaguePopulationDice.floorEntry((int) distanceToTerra).getValue().floorEntry(populationRoll).getValue();
+                    
+                    populationMultiplier = recentColony ?
+                    starLeaguePopulationMultipliers.floorEntry((int) distanceToTerra).getValue().floorEntry(populationRoll).getValue() :
+                    postStarLeaguePopulationMultipliers.floorEntry((int) distanceToTerra).getValue().floorEntry(populationRoll).getValue();
+        } else if(specialRoll == SPECIAL_LOST_COLONY) {
+            populationDice = recentColony ?
+                    starLeaguePopulationDice.floorEntry(LOST_COLONY_DICE_KEY).getValue().floorEntry(populationRoll).getValue() :
+                    postStarLeaguePopulationDice.floorEntry(LOST_COLONY_DICE_KEY).getValue().floorEntry(populationRoll).getValue();
+                    
+            populationDice = recentColony ?
+                    starLeaguePopulationMultipliers.floorEntry(LOST_COLONY_DICE_KEY).getValue().floorEntry(populationRoll).getValue() :
+                    postStarLeaguePopulationMultipliers.floorEntry(LOST_COLONY_DICE_KEY).getValue().floorEntry(populationRoll).getValue();
+        } else if(specialRoll == SPECIAL_STAR_LEAGUE_OUTPOST_OCCUPIED ||
+                specialRoll == SPECIAL_STAR_LEAGUE_OUTPOST_ABANDONED) {
+            populationDice = recentColony ?
+                    starLeaguePopulationDice.floorEntry(OUTPOST_DICE_KEY).getValue().floorEntry(populationRoll).getValue() :
+                    postStarLeaguePopulationDice.floorEntry(OUTPOST_DICE_KEY).getValue().floorEntry(populationRoll).getValue();
+                    
+            populationDice = recentColony ?
+                    starLeaguePopulationMultipliers.floorEntry(OUTPOST_DICE_KEY).getValue().floorEntry(populationRoll).getValue() :
+                    postStarLeaguePopulationMultipliers.floorEntry(OUTPOST_DICE_KEY).getValue().floorEntry(populationRoll).getValue();
         }
+        
+        if(populationMultiplier == 0) {
+            colonyState = ColonyState.Abandoned;
+        }
+        
+        long population = populationMultiplier * Compute.d6(populationDice);
+        double postPopulationMultiplier = 1.0;
+        
+        // adjust population based on criteria
+        if(p.getPressure(dateTime) <= PlanetaryConditions.ATMO_TRACE ||
+                p.getPressure(dateTime) >= PlanetaryConditions.ATMO_VHIGH ||
+                p.getAtmosphere(dateTime).equals(ATMO_VALUE_TOXIC)) {
+            postPopulationMultiplier *= .05;
+        } 
+        
+        if(p.getAtmosphere(dateTime).equals(ATMO_VALUE_TAINTED)) {
+            postPopulationMultiplier *= .8;
+        }
+        
+        // very high avg temperature
+        if(p.getTemperature(dateTime) > VERY_HIGH_TEMP) {
+            postPopulationMultiplier *= .8;
+        }
+        
+        if(p.getGravity() < .8 || (p.getGravity() > 1.2 && p.getGravity() <= 1.5)) {
+            postPopulationMultiplier *= .8;
+        } else if(p.getGravity() > 1.5) {
+            postPopulationMultiplier *= .5;
+        }
+        
+        if(p.getPercentWater(dateTime) < 40) {
+            postPopulationMultiplier *= .8;
+        }
+        
+        population *= postPopulationMultiplier;
+        getEvent(p).population = population;
+        
+        if(colonyState == ColonyState.None) {
+            colonyState = recentColony ? ColonyState.Recent : ColonyState.Established;
+        }
+        
+        return colonyState;
+    }
+    
+    private void setUSILR(Planet p, boolean recentColony) {
+        getEvent(p).socioIndustrial = new SocioIndustrialData();
+        setTech(p, recentColony);
+        setIndustrialDevelopment(p);
+        setIndustrialOutput(p);
+        setAgricultural(p);
+        setRawMaterial(p, recentColony);
+    }
+    
+    private void setTech(Planet p, boolean recentColony) {
+        int techLevel = EquipmentType.RATING_C;
+        
+        if(!recentColony) {
+            techLevel--;
+        }
+        
+        // one biiiillion dollars!
+        if(p.getPopulation(dateTime) > 1000000000) {
+            techLevel++;
+        } else if(p.getPopulation(dateTime) < 100000000) {
+            techLevel--;
+        }
+        
+        if(p.getPopulation(dateTime) < 1000000) {
+            techLevel--;
+        }
+        
+        for(String factionCode : p.getFactions(dateTime)) {
+            Faction faction = Faction.getFaction(factionCode);
+            if(faction.isClan()) {
+                techLevel--;
+                break;
+            } else if(faction.is(Tag.MINOR) || faction.is(Tag.SMALL)) {
+                techLevel--;
+                break;
+            }
+        }
+        
+        getEvent(p).socioIndustrial.tech = techLevel;
+    }
+    
+    private void setIndustrialDevelopment(Planet p) {
+        int indLevel = EquipmentType.RATING_C;
+        long oneBillion = 1000000000;
+        
+        if(p.getPopulation(dateTime) > oneBillion) {
+            indLevel--;
+        }
+        
+        if(p.getPopulation(dateTime) > (oneBillion * 4)) {
+            indLevel--;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).tech < EquipmentType.RATING_B) {
+            indLevel--;
+        }
+        
+        if(p.getPopulation(dateTime) < 100000000) {
+            indLevel++;
+        }
+        
+        if(p.getPopulation(dateTime) < 1000000) {
+            indLevel++;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).tech > EquipmentType.RATING_F) {
+            indLevel++;
+        }
+        
+        getEvent(p).socioIndustrial.industry = indLevel;
+    }
+    
+    private void setIndustrialOutput(Planet p) {
+        int indLevel = EquipmentType.RATING_C;
+        long oneBillion = 1000000000;
+        
+        if(p.getPopulation(dateTime) > oneBillion) {
+            indLevel--;
+        }
+                
+        if(p.getSocioIndustrial(dateTime).tech <= EquipmentType.RATING_A) {
+            indLevel--;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).industry < EquipmentType.RATING_B) {
+            indLevel--;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).tech >= EquipmentType.RATING_D) {
+            indLevel++;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).tech == EquipmentType.RATING_FSTAR) {
+            indLevel++;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).industry > EquipmentType.RATING_D) {
+            indLevel++;
+        }
+        
+        getEvent(p).socioIndustrial.output = indLevel;
+    }
+    
+    private void setAgricultural(Planet p) {
+        int agriLevel = EquipmentType.RATING_C;
+        long oneBillion = 1000000000;
+        
+        if(p.getSocioIndustrial(dateTime).tech < EquipmentType.RATING_B) {
+            agriLevel--;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).tech < EquipmentType.RATING_C) {
+            agriLevel--;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).industry < EquipmentType.RATING_C) {
+            agriLevel--;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).tech >= EquipmentType.RATING_F) {
+            agriLevel++;
+        }
+        
+        if(p.getPopulation(dateTime) > oneBillion) {
+            agriLevel++;
+        }
+        
+        if(p.getPopulation(dateTime) > (oneBillion * 5)) {
+            agriLevel++;
+        }
+        
+        if(p.getPercentWater(dateTime) < 50) {
+            agriLevel++;
+        }
+        
+        if(p.getAtmosphere(dateTime).equals(ATMO_VALUE_TAINTED)) {
+            agriLevel++;
+        }
+        
+        if(p.getAtmosphere(dateTime).equals(ATMO_VALUE_TOXIC)) {
+            agriLevel += 2;
+        }
+        
+        getEvent(p).socioIndustrial.agriculture = agriLevel;
+    }
+    
+    private void setRawMaterial(Planet p, boolean recentColony) {
+        int rawMatDepRating = EquipmentType.RATING_C;
+        long oneBillion = 1000000000;
+        
+        if(p.getSocioIndustrial(dateTime).tech < EquipmentType.RATING_A) {
+            rawMatDepRating--;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).tech <= EquipmentType.RATING_C) {
+            rawMatDepRating--;
+        }
+        
+        if(p.getDensity() > 5.5) {
+            rawMatDepRating--;
+        }
+        
+        if(p.getPopulation(dateTime) > (oneBillion * 3)) {
+            rawMatDepRating++;
+        }
+        
+        if(p.getSocioIndustrial(dateTime).industry <= EquipmentType.RATING_B) {
+            rawMatDepRating++;
+        }
+        
+        if(!recentColony) {
+            rawMatDepRating++;
+        }
+        
+        if(p.getDensity() < 4.0) {
+            rawMatDepRating--;
+        }
+        
+        getEvent(p).socioIndustrial.rawMaterials = rawMatDepRating;
+    }
+    
+    private void setGovernment(Planet p) {
+        // skip this for now, irrelevant for what I'm working on
+    }
+    
+    private void setHPG(Planet p) {
+        getEvent(p).hpg = 0;
+    }
+    
+    private void setRechargeStation(Planet p) {
+        getEvent(p).nadirCharge = false;
+        getEvent(p).zenithCharge = false;
     }
     
     private int getStarHabitabilityMod() {
@@ -871,6 +1369,18 @@ public class SystemGenerator {
                     appendLine(sb, String.format("Highest Native Life Form: %s", p.getLifeFormName(dateTime)), html, tabCount);
                 }
             }
+            
+            if(p.getPopulation(dateTime) != null) {
+                if(p.getPopulation(dateTime) != 0) {
+                    appendLine(sb, String.format("Population: %d", p.getPopulation(dateTime)), html, tabCount);
+                    appendLine(sb, String.format("Tech Level: %s", p.getSocioIndustrial(dateTime).getHTMLDescription()), html, tabCount);
+                    appendLine(sb, String.format("Government: %s", p.getGovernment(dateTime)), html, tabCount);
+                    appendLine(sb, String.format("HPG: %d", p.getHPGClass(dateTime)), html, tabCount);
+                    appendLine(sb, String.format("Recharge Station(s): %d", p.getRechargeStationsText(dateTime)), html, tabCount);
+                } else if(p.getPopulation(dateTime) == -1) {
+                    appendLine(sb, "Abandoned", html, tabCount);
+                }
+            }
         }
         
         boolean hasSatellites = p.getSatellites() != null && p.getSatellites().size() > 0;
@@ -923,5 +1433,12 @@ public class SystemGenerator {
         GiantTerrestrial,
         GasGiant,
         IceGiant
+    }
+    
+    public enum ColonyState {
+        Abandoned,
+        Recent,
+        Established,
+        None
     }
 }

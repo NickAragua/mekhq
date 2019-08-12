@@ -34,6 +34,7 @@ import java.util.function.Predicate;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -207,10 +208,7 @@ public class GMToolsDialog extends JDialog implements ActionListener {
         txtOutput.setColumns(80);
         txtOutput.setRows(20);
         
-        JTextField txtForceHabitable = new JTextField();
-        JLabel lblForceHabitable = new JLabel("Force Habitation");
-        
-        //JCheckBox chk
+        JCheckBox chkForceColony = new JCheckBox("Force Colony");
         
         JButton btnGenerate = new JButton("Generate");
         btnGenerate.addActionListener(new ActionListener() {
@@ -221,15 +219,21 @@ public class GMToolsDialog extends JDialog implements ActionListener {
                 sgen.initializeSystem();
                 sgen.initializeOrbitalSlots();
                 sgen.fillOrbitalSlots();
+                
+                if(chkForceColony.isSelected()) {
+                    sgen.forceColony();
+                }
+                
                 txtOutput.setText(sgen.getOutput(false));
             };        
         });
         
-        sysPanel.add(btnGenerate, newGridBagConstraints(0, 0));
+        sysPanel.add(btnGenerate, newGridBagConstraints(0, 0, 1, 1));
+        sysPanel.add(chkForceColony, newGridBagConstraints(1, 0, 1, 1));
         
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setViewportView(txtOutput);
-        sysPanel.add(scrollPane, newGridBagConstraints(0, 1));
+        sysPanel.add(scrollPane, newGridBagConstraints(0, 1, 2, 1));
         
         return sysPanel;
     }

@@ -217,6 +217,8 @@ public class Planet implements Serializable {
     @XmlJavaTypeAdapter(StringListAdapter.class)
     private List<String> factions;
     
+    private Long population;
+    
     //private List<String> garrisonUnits;
 
     // Fluff
@@ -541,6 +543,14 @@ public class Planet implements Serializable {
     public Double getY() {
         return y;
     }
+    
+    public void setX(double value) {
+        x = value;
+    }
+    
+    public void setY(double value) {
+        y = value;
+    }
 
     public String getSpectralType() {
         return spectralType;
@@ -707,6 +717,12 @@ public class Planet implements Serializable {
     public String getPopulationRatingString(DateTime when) {
         Integer pops = getPopulationRating(when);
         return (null != pops) ? StarUtil.getPopulationRatingString(pops.intValue()) : "unknown";
+    }
+    
+    public Long getPopulation(DateTime when) {
+        return getEventData(when, population, new EventGetter<Long>() {
+            @Override public Long get(PlanetaryEvent e) { return e.population; }
+        });
     }
     
     public String getGovernment(DateTime when) {
@@ -1477,6 +1493,7 @@ public class Planet implements Serializable {
         public Integer habitability;
         @XmlElement(name = "pop")
         public Integer populationRating;
+        public Long population;
         public String government;
         public Integer controlRating;
         // Stellar support, to be moved later
@@ -1508,6 +1525,7 @@ public class Planet implements Serializable {
             controlRating = Utilities.nonNull(other.controlRating, controlRating);
             nadirCharge = Utilities.nonNull(other.nadirCharge, nadirCharge);
             zenithCharge = Utilities.nonNull(other.zenithCharge, zenithCharge);
+            population = Utilities.nonNull(other.population, population);
             custom = (other.custom || custom);
         }
         
@@ -1534,6 +1552,7 @@ public class Planet implements Serializable {
             controlRating = other.controlRating;
             nadirCharge = other.nadirCharge;
             zenithCharge = other.zenithCharge;
+            population = other.population;
             custom = (other.custom || custom);
         }
         
@@ -1544,7 +1563,7 @@ public class Planet implements Serializable {
                 && (null == temperature) && (null == pressure) && (null == pressureAtm)
                 && (null == atmMass) && (null == atmosphere) && (null == albedo) && (null == greenhouseEffect)
                 && (null == habitability) && (null == populationRating) && (null == government)
-                && (null == controlRating) && (null == nadirCharge) && (null == zenithCharge);
+                && (null == controlRating) && (null == nadirCharge) && (null == zenithCharge) && (null == population);
         }
     }
     

@@ -77,7 +77,6 @@ import javax.vecmath.Vector2d;
 
 import org.joda.time.DateTime;
 
-import megamek.common.Compute;
 import megamek.common.EquipmentType;
 import mekhq.Utilities;
 import mekhq.campaign.Campaign;

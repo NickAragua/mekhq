@@ -77,6 +77,8 @@ public class PlanetViewPanel extends JPanel {
     private JTextPane txtSocioIndustrial;
     private JLabel lblLandMass;
     private JTextArea txtLandMass;
+    private JLabel lblCoords;
+    private JTextArea txtCoords;
     
     private Image planetIcon = null;
     
@@ -151,9 +153,16 @@ public class PlanetViewPanel extends JPanel {
     }
 
     private void getNeighbors() {
-        GridBagConstraints gridBagConstraints;
+        GridBagConstraints gridBagConstraints = new GridBagConstraints();
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.gridwidth = 1;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.insets = new Insets(0, 0, 0, 0);
+        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = GridBagConstraints.NORTHWEST;
+        
         pnlNeighbors.setLayout(new GridBagLayout());
-        int i = 0;
+        int i = 1;
         JLabel lblNeighbor;
         JLabel lblDistance;
         DateTime currentDate = Utilities.getDateTimeDay(campaign.getCalendar());
@@ -162,25 +171,15 @@ public class PlanetViewPanel extends JPanel {
                 continue;
             }
             lblNeighbor = new JLabel(neighbor.getPrintableName(currentDate) + " (" + neighbor.getFactionDesc(currentDate) + ")");
-            gridBagConstraints = new GridBagConstraints();
             gridBagConstraints.gridx = 0;
             gridBagConstraints.gridy = i;
-            gridBagConstraints.gridwidth = 1;
-            gridBagConstraints.weightx = 0.5;
-            gridBagConstraints.weighty = 1.0;
-            gridBagConstraints.insets = new Insets(0, 0, 0, 0);
-            gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-            gridBagConstraints.anchor = GridBagConstraints.NORTHWEST;
+
             pnlNeighbors.add(lblNeighbor, gridBagConstraints);
             
             lblDistance = new JLabel(String.format(Locale.ROOT, "%.2f ly", planet.getDistanceTo(neighbor)));
             lblDistance.setAlignmentX(Component.RIGHT_ALIGNMENT);
-            gridBagConstraints = new GridBagConstraints();
             gridBagConstraints.gridx = 1;
             gridBagConstraints.gridy = i;
-            gridBagConstraints.weightx = 0.5;
-            gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-            gridBagConstraints.anchor = GridBagConstraints.NORTHWEST;
             pnlNeighbors.add(lblDistance, gridBagConstraints);
 
             ++ i;
@@ -238,6 +237,8 @@ public class PlanetViewPanel extends JPanel {
         txtSocioIndustrial = new JTextPane();
         lblLandMass = new JLabel();
         txtLandMass = new JTextArea();
+        lblCoords = new JLabel();
+        txtCoords = new JTextArea();
         
         GridBagConstraints gridBagConstraints;
         pnlStats.setLayout(new GridBagLayout());
@@ -558,6 +559,30 @@ public class PlanetViewPanel extends JPanel {
             
             ++ infoRow;
         }
+        
+        lblCoords.setName("lblCoords");
+        lblCoords.setText(resourceMap.getString("lblCoords.text"));
+        gridBagConstraints = new GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = infoRow;
+        gridBagConstraints.fill = GridBagConstraints.NONE;
+        gridBagConstraints.anchor = GridBagConstraints.NORTHWEST;
+        pnlStats.add(lblCoords, gridBagConstraints);
+        
+        txtCoords.setName("txtCoords");
+        txtCoords.setText(String.format("(%.2f, %.2f), %.2f LY to Terra", planet.getX(), planet.getY(), planet.getDistanceTo(0, 0)));
+        txtCoords.setEditable(false);
+        txtCoords.setLineWrap(true);
+        txtCoords.setWrapStyleWord(true);
+        gridBagConstraints = new GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = infoRow;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.insets = new Insets(0, 10, 0, 0);
+        gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = GridBagConstraints.NORTHWEST;
+        pnlStats.add(txtCoords, gridBagConstraints);
+        ++ infoRow;
         
         // Social stuff
         if(null != planet.getPopulationRating(currentDate)) {

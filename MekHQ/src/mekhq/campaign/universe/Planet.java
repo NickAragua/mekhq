@@ -443,6 +443,14 @@ public class Planet implements Serializable {
         return null != orbitSemimajorAxis ? orbitSemimajorAxis * StarUtil.AU : getStarAverageLifeZone();
     }
 
+    public void addSatellite(String satellite) {
+        if(satellites == null) {
+            satellites = new ArrayList<>();
+        }
+        
+        satellites.add(satellite);
+    }
+    
     public List<String> getSatellites() {
         return null != satellites ? new ArrayList<String>(satellites) : null;
     }

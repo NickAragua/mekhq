@@ -21,6 +21,7 @@
 
 package mekhq.gui.dialog;
 
+import java.awt.Color;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -209,14 +210,35 @@ public class GMToolsDialog extends JDialog implements ActionListener {
         txtOutput.setRows(20);
         
         JCheckBox chkForceColony = new JCheckBox("Force Colony");
+        JTextField txtX = new JTextField();
+        txtX.setColumns(5);
+        JLabel lblX = new JLabel("X:");
+        
+        JTextField txtY = new JTextField();
+        txtY.setColumns(5);
+        JLabel lblY = new JLabel("Y:");
         
         JButton btnGenerate = new JButton("Generate");
         btnGenerate.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                SystemGenerator sgen = new SystemGenerator();
-                sgen.initializeSystem();
+                double x = 0.0;
+                double y = 0.0;
+                
+                try {
+                    x = Double.parseDouble(txtX.getText());
+                    y = Double.parseDouble(txtY.getText());
+                    lblX.setForeground(Color.BLACK);
+                    lblY.setForeground(Color.BLACK);
+                } catch(Exception exc) {
+                    lblX.setForeground(Color.RED);
+                    lblY.setForeground(Color.RED);
+                    return;
+                }
+                
+                SystemGenerator sgen = new SystemGenerator(Utilities.getDateTimeDay(gui.getCampaign().getCalendar()));
+                sgen.initializeSystem(x, y);
                 sgen.initializeOrbitalSlots();
                 sgen.fillOrbitalSlots();
                 
@@ -228,12 +250,38 @@ public class GMToolsDialog extends JDialog implements ActionListener {
             };        
         });
         
-        sysPanel.add(btnGenerate, newGridBagConstraints(0, 0, 1, 1));
-        sysPanel.add(chkForceColony, newGridBagConstraints(1, 0, 1, 1));
+        GridBagConstraints gbc = this.newGridBagConstraints(0, 0, 1, 1);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        sysPanel.add(btnGenerate, gbc);
+        gbc.gridx++;
+        sysPanel.add(chkForceColony, gbc);
+        gbc.gridx++;
+        gbc.weightx = .2;
+        gbc.anchor = GridBagConstraints.NORTHEAST;
+        sysPanel.add(lblX, gbc);
+        gbc.weightx = 1;
+        gbc.gridx++;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.fill = GridBagConstraints.NONE;
+        sysPanel.add(txtX, gbc);
+        gbc.gridx++;
+        gbc.weightx = .2;
+        gbc.anchor = GridBagConstraints.NORTHEAST;
+        sysPanel.add(lblY, gbc);
+        gbc.gridx++;
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.fill = GridBagConstraints.NONE;
+        sysPanel.add(txtY, gbc);
         
         JScrollPane scrollPane = new JScrollPane();
         scrollPane.setViewportView(txtOutput);
-        sysPanel.add(scrollPane, newGridBagConstraints(0, 1, 2, 1));
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 6;
+        gbc.fill = GridBagConstraints.BOTH;
+        sysPanel.add(scrollPane, gbc);
         
         return sysPanel;
     }

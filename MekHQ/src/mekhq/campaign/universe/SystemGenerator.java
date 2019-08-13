@@ -29,7 +29,11 @@ public class SystemGenerator {
     private String ATMO_VALUE_TOXIC = "Toxic";
     private String ATMO_VALUE_TAINTED = "Tainted";
     
+    // the inner sphere is *approximately* 1100 light years across
+    private int INNER_SPHERE_THRESHOLD = 1100; 
+    
     private int VERY_HIGH_TEMP = 317;
+    private int VERY_LOW_TEMP = 287;
     
     private List<Double> baseAUs = new ArrayList<>();
     private Map<PlanetType, Integer> baseDiameters;
@@ -60,6 +64,15 @@ public class SystemGenerator {
     
     private int recentColonyThreshold = 3;
     
+    // these represent the innersphere and periphery rating columns of the HPG table
+    // to adjust for the fact that generated planets aren't really part of a nation
+    // we simply judge based on distance to terra.
+    private TreeMap<Integer, Integer> innerSphereHPGRatings;
+    private TreeMap<Integer, Integer> peripheryHPGRatings;
+    
+    private TreeMap<Integer, Integer> innerSphereRechargeStationCount;
+    private TreeMap<Integer, Integer> peripheryRechargeStationCount;
+    
     // nice and complex data structure.
     // first key is the 1d6 roll on CamOps moons table
     // second key is the planet type for which we're generating moons
@@ -85,8 +98,8 @@ public class SystemGenerator {
     private Random rng;
     
     
-    public SystemGenerator() {
-        dateTime = new DateTime(3060, 1, 1, 1, 1);
+    public SystemGenerator(DateTime currentDate) {
+        dateTime = currentDate;
         rng = new Random(DateTime.now().getMillis());
         
         // camops, page 102, orbital placement table
@@ -485,6 +498,26 @@ public class SystemGenerator {
         postStarLeaguePopulationDice.put(LOST_COLONY_DICE_KEY, new TreeMap<>());
         postStarLeaguePopulationDice.get(LOST_COLONY_DICE_KEY).put(1, 2);
         postStarLeaguePopulationDice.get(LOST_COLONY_DICE_KEY).put(6, 2);
+        
+        innerSphereHPGRatings = new TreeMap<>();
+        innerSphereHPGRatings.put(Integer.MIN_VALUE, EquipmentType.RATING_C);
+        innerSphereHPGRatings.put(2, EquipmentType.RATING_B);
+        innerSphereHPGRatings.put(11, EquipmentType.RATING_A);
+        
+        peripheryHPGRatings = new TreeMap<>();
+        peripheryHPGRatings.put(Integer.MIN_VALUE, EquipmentType.RATING_D);
+        peripheryHPGRatings.put(2, EquipmentType.RATING_C);
+        peripheryHPGRatings.put(3, EquipmentType.RATING_C);
+        peripheryHPGRatings.put(12, EquipmentType.RATING_A);
+        
+        innerSphereRechargeStationCount = new TreeMap<>();
+        innerSphereRechargeStationCount.put(Integer.MIN_VALUE, 0);
+        innerSphereRechargeStationCount.put(10, 1);
+        innerSphereRechargeStationCount.put(12, 2);
+        
+        peripheryRechargeStationCount = new TreeMap<>();
+        peripheryRechargeStationCount.put(Integer.MIN_VALUE, 0);
+        peripheryRechargeStationCount.put(10, 1);
     }
     
     public Planet getCurrentPlanet() {
@@ -594,12 +627,11 @@ public class SystemGenerator {
         setAtmosphere(p);
         setHabitabilityIndex(p);
         
-        int atmoRoll = -1;
         if(p.getHabitability(dateTime) == 0) { 
             setUnbreathableAtmosphereGasContent(p);
             setUninhabitableTemperature(p);
         } else {
-            atmoRoll = setBreathableAtmosphereGasContent(p);
+            setBreathableAtmosphereGasContent(p);
             setHabitableTemperature(p);
         }
         
@@ -611,8 +643,8 @@ public class SystemGenerator {
             ColonyState colonyState = setColony(p, special);
             setUSILR(p, colonyState == ColonyState.Recent);
             setGovernment(p);
-            setHPG(p);
-            setRechargeStation(p);
+            setHPG(p, colonyState);
+            setRechargeStations(p, colonyState);
             
             if(colonyState == ColonyState.Abandoned) {
                 getEvent(p).population = (long) -1;
@@ -670,8 +702,8 @@ public class SystemGenerator {
         ColonyState colonyState = setColony(bestPlanet, adjustedSpecialRoll);
         setUSILR(bestPlanet, colonyState == ColonyState.Recent);
         setGovernment(bestPlanet);
-        setHPG(bestPlanet);
-        setRechargeStation(bestPlanet);
+        setHPG(bestPlanet, colonyState);
+        setRechargeStations(bestPlanet, colonyState);
         
         if(colonyState == ColonyState.Abandoned) {
             getEvent(bestPlanet).population = (long) -1;
@@ -761,22 +793,27 @@ public class SystemGenerator {
         int giantMoons = 0;
         p.clearSatellites();
         
-        // do moons later
         switch(p.getPlanetType()) {
         case AsteroidBelt:
             int asteroidRoll = Compute.d6();
             double asteroidMultiplier = (p.getSystemPosition() / 2.8) * Math.pow(asteroidRoll / 3, 2.0);
             // per CamOps, there are 1.2M x multiplier "small asteroids" in a belt, but I'm not generating millions of small asteroids
             // per CamOps, there are 200 x multiplier "medium asteroids" in a belt, but I'm not generating hundreds of them, either
-            p.getSatellites().add(String.format("Approx. %d small asteroids", (int) (1200000 * asteroidMultiplier)));
-            p.getSatellites().add(String.format("Approx. %d medium asteroids", (int) (200 * asteroidMultiplier)));
+            p.addSatellite(String.format("Approx. %d small asteroids", (int) (1200000 * asteroidMultiplier)));
+            p.addSatellite(String.format("Approx. %d medium asteroids", (int) (200 * asteroidMultiplier)));
             largeMoons = (int) Math.ceil(asteroidMultiplier * 4);
             break;
         default:
             smallMoons = rollMoons(p, PlanetType.SmallAsteroid);
             mediumMoons = rollMoons(p, PlanetType.MediumAsteroid);
-            p.getSatellites().add(String.format("%d small moons", smallMoons));
-            p.getSatellites().add(String.format("%d medium moons", mediumMoons));
+            
+            if(smallMoons > 0) {
+                p.addSatellite(String.format("%d small moons", smallMoons));
+            }
+            
+            if(mediumMoons > 0) {
+                p.addSatellite(String.format("%d medium moons", mediumMoons));
+            }
             
             largeMoons = rollMoons(p, PlanetType.DwarfTerrestrial);
             giantMoons = rollMoons(p, PlanetType.Terrestrial);
@@ -955,6 +992,10 @@ public class SystemGenerator {
         }
         
         getEvent(p).atmosphere = sb.toString();
+        
+        if(p.getAtmosphere(dateTime) == null) {
+            int alpha = 1;
+        }
     }
     
     private int setBreathableAtmosphereGasContent(Planet p) {
@@ -964,6 +1005,10 @@ public class SystemGenerator {
         }
         
         getEvent(p).atmosphere = habitableAtmoCompositions.floorEntry(atmoRoll).getValue();
+        
+        if(p.getAtmosphere(dateTime) == null) {
+            int alpha = 1;
+        }
         
         return atmoRoll;
     }
@@ -1022,7 +1067,7 @@ public class SystemGenerator {
     }
     
     private ColonyState setColony(Planet p, int specialRoll) {
-        int populationDice = 0;
+        int populationDice = 1;
         int populationMultiplier = 0;
         boolean recentColony = Compute.d6() > recentColonyThreshold;
         ColonyState colonyState = ColonyState.None;
@@ -1070,16 +1115,20 @@ public class SystemGenerator {
         // adjust population based on criteria
         if(p.getPressure(dateTime) <= PlanetaryConditions.ATMO_TRACE ||
                 p.getPressure(dateTime) >= PlanetaryConditions.ATMO_VHIGH ||
-                p.getAtmosphere(dateTime).equals(ATMO_VALUE_TOXIC)) {
+                p.getAtmosphere(dateTime).equals(ATMO_VALUE_TOXIC) || 
+                p.getHabitability(dateTime) == 0) {
             postPopulationMultiplier *= .05;
         } 
         
-        if(p.getAtmosphere(dateTime).equals(ATMO_VALUE_TAINTED)) {
+        if(p.getAtmosphere(dateTime) != null && 
+                p.getAtmosphere(dateTime).equals(ATMO_VALUE_TAINTED)) {
             postPopulationMultiplier *= .8;
         }
         
         // very high avg temperature
-        if(p.getTemperature(dateTime) > VERY_HIGH_TEMP) {
+        // not in camops, but very low temp probably has the same effect
+        if(p.getTemperature(dateTime) > VERY_HIGH_TEMP ||
+                p.getTemperature(dateTime) < VERY_LOW_TEMP) {
             postPopulationMultiplier *= .8;
         }
         
@@ -1089,7 +1138,10 @@ public class SystemGenerator {
             postPopulationMultiplier *= .5;
         }
         
-        if(p.getPercentWater(dateTime) < 40) {
+        // little water 
+        // not in camops, but too much water probably impedes colonization as well
+        if(p.getPercentWater(dateTime) < 40 || 
+                p.getPercentWater(dateTime) > 95) {
             postPopulationMultiplier *= .8;
         }
         
@@ -1121,16 +1173,21 @@ public class SystemGenerator {
         
         // one biiiillion dollars!
         if(p.getPopulation(dateTime) > 1000000000) {
-            techLevel++;
-        } else if(p.getPopulation(dateTime) < 100000000) {
             techLevel--;
+        } else if(p.getPopulation(dateTime) < 100000000) {
+            techLevel++;
         }
         
         if(p.getPopulation(dateTime) < 1000000) {
-            techLevel--;
+            techLevel++;
         }
         
-        for(String factionCode : p.getFactions(dateTime)) {
+        // below is the real camops table
+        // since we don't have a faction for the planet necessarily, we just use distance to terra to eyeball it
+        if(distanceToTerra > INNER_SPHERE_THRESHOLD) {
+            techLevel--;
+        }
+        /*for(String factionCode : p.getFactions(dateTime)) {
             Faction faction = Faction.getFaction(factionCode);
             if(faction.isClan()) {
                 techLevel--;
@@ -1139,7 +1196,7 @@ public class SystemGenerator {
                 techLevel--;
                 break;
             }
-        }
+        }*/
         
         getEvent(p).socioIndustrial.tech = techLevel;
     }
@@ -1238,11 +1295,11 @@ public class SystemGenerator {
             agriLevel++;
         }
         
-        if(p.getAtmosphere(dateTime).equals(ATMO_VALUE_TAINTED)) {
+        if(p.getAtmosphere(dateTime) == null || p.getAtmosphere(dateTime).equals(ATMO_VALUE_TAINTED)) {
             agriLevel++;
         }
         
-        if(p.getAtmosphere(dateTime).equals(ATMO_VALUE_TOXIC)) {
+        if(p.getAtmosphere(dateTime) == null || p.getAtmosphere(dateTime).equals(ATMO_VALUE_TOXIC)) {
             agriLevel += 2;
         }
         
@@ -1288,13 +1345,49 @@ public class SystemGenerator {
         // skip this for now, irrelevant for what I'm working on
     }
     
-    private void setHPG(Planet p) {
-        getEvent(p).hpg = 0;
+    private void setHPG(Planet p, ColonyState colonyState) {
+        int modifier = 0;
+        modifier -= Math.floor(distanceToTerra / 100.0);
+        modifier -= p.getPopulation(dateTime) < 1000000000 ? 1 : 0;
+        modifier -= p.getSocioIndustrial(dateTime).tech <= EquipmentType.RATING_D ? 1 : 0;
+        modifier -= p.getSocioIndustrial(dateTime).industry <= EquipmentType.RATING_D ? 1 : 0;
+        modifier += colonyState == ColonyState.Established ? 1 : 0; //fudge, camops says "before 2800"
+        modifier += p.getPopulation(dateTime) > 2000000000 ? 1 : 0;
+        // skipped "national capital" since it's probably not a national capital
+        
+        int hpgRoll = Compute.d6(2) + modifier;
+        if(distanceToTerra < INNER_SPHERE_THRESHOLD) {
+            getEvent(p).hpg = innerSphereHPGRatings.floorEntry(hpgRoll).getValue();
+        } else {
+            getEvent(p).hpg = innerSphereHPGRatings.floorEntry(hpgRoll).getValue();
+        }
     }
     
-    private void setRechargeStation(Planet p) {
-        getEvent(p).nadirCharge = false;
-        getEvent(p).zenithCharge = false;
+    private void setRechargeStations(Planet p, ColonyState colonyState) {
+        int modifier = 0;
+        modifier -= p.getPopulation(dateTime) < 1000000000 ? 1 : 0;
+        modifier -= p.getSocioIndustrial(dateTime).tech <= EquipmentType.RATING_D ? 1 : 0;
+        modifier -= p.getSocioIndustrial(dateTime).industry <= EquipmentType.RATING_D ? 1 : 0;
+        modifier += colonyState == ColonyState.Established ? 1 : 0; //fudge, camops says "before 2800"
+        modifier += p.getPopulation(dateTime) > 2000000000 ? 1 : 0;
+        // skipped "national capital" since it's probably not a national capital
+        
+        int rechargeStationRoll = Compute.d6(2) + modifier;
+        int rechargeStationCount = 0;
+        if(distanceToTerra < INNER_SPHERE_THRESHOLD) {
+            rechargeStationCount = innerSphereRechargeStationCount.floorEntry(rechargeStationRoll).getValue();
+        } else {
+            rechargeStationCount = peripheryRechargeStationCount.floorEntry(rechargeStationRoll).getValue();
+        }
+        
+        // sometimes we have one, sometimes two recharge stations.
+        // if we only have one, randomly pick zenith/nadir
+        int stationRoll = Compute.d6();
+        boolean chargeTop = rechargeStationCount == 2 || (rechargeStationCount == 1 && stationRoll > 3);
+        boolean chargeBottom = rechargeStationCount == 2 || (rechargeStationCount == 1 && stationRoll <= 3);
+        
+        getEvent(p).nadirCharge = chargeTop;
+        getEvent(p).zenithCharge = chargeBottom;
     }
     
     private int getStarHabitabilityMod() {
@@ -1371,21 +1464,28 @@ public class SystemGenerator {
             }
             
             if(p.getPopulation(dateTime) != null) {
-                if(p.getPopulation(dateTime) != 0) {
+                if(p.getPopulation(dateTime) > 0) {
+                    appendLine(sb, p.getDescription(), html, tabCount);
                     appendLine(sb, String.format("Population: %d", p.getPopulation(dateTime)), html, tabCount);
-                    appendLine(sb, String.format("Tech Level: %s", p.getSocioIndustrial(dateTime).getHTMLDescription()), html, tabCount);
                     appendLine(sb, String.format("Government: %s", p.getGovernment(dateTime)), html, tabCount);
-                    appendLine(sb, String.format("HPG: %d", p.getHPGClass(dateTime)), html, tabCount);
-                    appendLine(sb, String.format("Recharge Station(s): %d", p.getRechargeStationsText(dateTime)), html, tabCount);
                 } else if(p.getPopulation(dateTime) == -1) {
-                    appendLine(sb, "Abandoned", html, tabCount);
+                    appendLine(sb, String.format("Abandoned %s", p.getDescription()), html, tabCount);
                 }
+                
+                appendLine(sb, String.format("Socio-Industrial: %s", p.getSocioIndustrial(dateTime).toString()), html, tabCount);
+                appendLine(sb, String.format("HPG: %s", p.getHPGClass(dateTime)), html, tabCount);
+                appendLine(sb, String.format("Recharge Station(s): %s", p.getRechargeStationsText(dateTime)), html, tabCount);
             }
         }
         
         boolean hasSatellites = p.getSatellites() != null && p.getSatellites().size() > 0;
         if(hasSatellites) {
-            appendLine(sb, p.getSatelliteDescription(), html, tabCount);
+            for(String s : p.getSatellites()) {
+                // hack: avoid cluttering things up with "0 small moons, etc"
+                if(!s.startsWith("0")) {
+                    appendLine(sb, s, html, tabCount);
+                }
+            }
         }
         
         if(satellites.containsKey(p.getSystemPosition())) {
@@ -1393,7 +1493,7 @@ public class SystemGenerator {
                 if(p.getPlanetType() == PlanetType.AsteroidBelt) {
                     appendLine(sb, "Major Asteroid: ", html, tabCount);
                 } else {
-                    appendLine(sb, "Satellite: ", html, tabCount);
+                    appendLine(sb, "Major Satellite: ", html, tabCount);
                 }
                 appendLine(sb, getPlanetOutput(moon, html, 1), html, 1);
             }

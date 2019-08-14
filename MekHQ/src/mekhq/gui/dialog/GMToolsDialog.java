@@ -208,6 +208,7 @@ public class GMToolsDialog extends JDialog implements ActionListener {
         txtOutput.setLineWrap(true);
         txtOutput.setColumns(80);
         txtOutput.setRows(20);
+        txtOutput.setEditable(false);
         
         JCheckBox chkForceColony = new JCheckBox("Force Colony");
         JTextField txtX = new JTextField();

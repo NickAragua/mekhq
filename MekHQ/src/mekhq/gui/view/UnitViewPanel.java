@@ -8,14 +8,15 @@ package mekhq.gui.view;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.Image;
 import java.util.ResourceBundle;
 
 import javax.swing.BorderFactory;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JTextArea;
+import javax.swing.JLabel;
 
 import megamek.client.ui.swing.MechTileset;
 import megamek.client.ui.swing.util.FluffImageHelper;
@@ -29,12 +30,14 @@ import megamek.common.util.EncodeControl;
 import mekhq.campaign.Campaign;
 import mekhq.campaign.unit.Unit;
 import mekhq.gui.EntityImage;
+import mekhq.gui.utilities.ImgLabel;
+import mekhq.gui.utilities.MarkdownRenderer;
 
 /**
  * A custom panel that gets filled in with goodies from a unit record
  * @author  Jay Lawson <jaylawson39 at yahoo.com>
  */
-public class UnitViewPanel extends javax.swing.JPanel {
+public class UnitViewPanel extends ScrollablePanel {
 	
 	/**
 	 * 
@@ -48,23 +51,23 @@ public class UnitViewPanel extends javax.swing.JPanel {
 	private MechTileset mt;
     private DirectoryItems camos;
 	
-	private javax.swing.JLabel lblImage;
+	private JLabel lblImage;
 	//private javax.swing.JPanel pnlStats;
 	private javax.swing.JTextPane txtReadout;
-	private JTextArea txtFluff;	
+	private javax.swing.JTextPane txtFluff;	
 	private javax.swing.JPanel pnlStats;
 	
 	private javax.swing.JLabel lblType;
 	private javax.swing.JLabel lblTech;
-	private javax.swing.JTextArea txtTech;
+	private javax.swing.JLabel txtTech;
 	private javax.swing.JLabel lblTonnage;
-	private javax.swing.JTextArea txtTonnage;
+	private javax.swing.JLabel txtTonnage;
 	private javax.swing.JLabel lblBV;
-	private javax.swing.JTextArea txtBV;
+	private javax.swing.JLabel txtBV;
 	private javax.swing.JLabel lblCost;
-	private javax.swing.JTextArea txtCost;
+	private javax.swing.JLabel txtCost;
 	private javax.swing.JLabel lblQuirk;
-	private javax.swing.JTextArea txtQuirk;
+	private javax.swing.JLabel txtQuirk;
 	
 	public UnitViewPanel(Unit u, Campaign c, DirectoryItems camos, MechTileset mt) {
 		unit = u;
@@ -79,9 +82,8 @@ public class UnitViewPanel extends javax.swing.JPanel {
 	private void initComponents() {
 		java.awt.GridBagConstraints gridBagConstraints;
 
-		lblImage = new javax.swing.JLabel();
 		txtReadout = new javax.swing.JTextPane();
-		txtFluff = new javax.swing.JTextArea();
+		txtFluff = new javax.swing.JTextPane();
 		pnlStats = new javax.swing.JPanel();
 		
     	ResourceBundle resourceMap = ResourceBundle.getBundle("mekhq.resources.UnitViewPanel", new EncodeControl()); //$NON-NLS-1$
@@ -89,36 +91,50 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		setLayout(new java.awt.GridBagLayout());
 
 		setBackground(Color.WHITE);
-		
-		lblImage.setName("lblImage"); // NOI18N
-		lblImage.setBackground(Color.WHITE);
-		Image image = FluffImageHelper.getFluffImage(entity);
-		if(null == image) {
-			image = getImageFor(unit, lblImage);     
-		}
-        Icon icon;
-		if(null != image) {
-			if(image.getWidth(lblImage) > 200) {
-                image = image.getScaledInstance(200, -1, Image.SCALE_DEFAULT);               
+
+        int compWidth = 1;
+        Image image = FluffImageHelper.getFluffImage(entity);
+        if(null != image) {
+            //fluff image exists so use custom ImgLabel to get full mech porn
+            lblImage = new  ImgLabel(image);
+            gridBagConstraints = new java.awt.GridBagConstraints();
+            gridBagConstraints.gridx = 1;
+            gridBagConstraints.gridy = 0;
+            gridBagConstraints.gridheight = 3;
+            gridBagConstraints.weightx = 1.0;
+            gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+            gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+            gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+            add(lblImage, gridBagConstraints);
+        } else {
+            //no fluff image, so just use image icon from top-down view
+            compWidth=2;
+            lblImage = new JLabel();
+            lblImage.setBackground(Color.WHITE);
+            image = getImageFor(unit, lblImage);
+            if(null != image) {
+                ImageIcon icon = new ImageIcon(image);
+                lblImage.setIcon(icon);
+                gridBagConstraints = new java.awt.GridBagConstraints();
+                gridBagConstraints.gridx = 1;
+                gridBagConstraints.gridy = 0;
+                gridBagConstraints.gridheight = 1;
+                gridBagConstraints.weightx = 1.0;
+                gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+                gridBagConstraints.anchor = java.awt.GridBagConstraints.CENTER;
+                add(lblImage, gridBagConstraints);
             }
-            icon = new ImageIcon(image);
-            lblImage.setIcon(icon);
         }
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 0;
-		gridBagConstraints.gridy = 0;
-		gridBagConstraints.fill = java.awt.GridBagConstraints.NONE;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.CENTER;
-		add(lblImage, gridBagConstraints);
-	
+        
 		pnlStats.setName("pnlBasic");
 		pnlStats.setBorder(BorderFactory.createTitledBorder(unit.getName()));
 		pnlStats.setBackground(Color.WHITE);
 		fillStats(resourceMap);
 		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 1;
+		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = 0;
-		gridBagConstraints.weightx = 1.0;
+		gridBagConstraints.weightx = 0.0;
+		gridBagConstraints.gridwidth = 1;
 		gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
 		gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
 		gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;	
@@ -133,12 +149,12 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		txtReadout.setText("<div style='font: 12pt monospaced'>" + mview.getMechReadoutBasic() + "<br>" + mview.getMechReadoutLoadout() + "</div>");
 		txtReadout.setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createTitledBorder("Technical Readout"),
-                BorderFactory.createEmptyBorder(5,5,5,5)));
+                BorderFactory.createEmptyBorder(0,2,2,2)));
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = 1;
-		gridBagConstraints.gridwidth = 2;
-		gridBagConstraints.weightx = 1.0;
+		gridBagConstraints.weightx = 0.0;
+		gridBagConstraints.gridwidth = compWidth;
 		if(unit.getHistory().length() == 0) {
 			gridBagConstraints.weighty = 1.0;
 		}
@@ -150,18 +166,17 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		if(unit.getHistory().length() > 0) {
 			txtFluff.setName("txtFluff");
 			txtFluff.setEditable(false);
-			txtFluff.setLineWrap(true);
-			txtFluff.setWrapStyleWord(true);
-			txtFluff.setText(unit.getHistory());
+			txtFluff.setContentType("text/html");
+			txtFluff.setText(MarkdownRenderer.getRenderedHtml(unit.getHistory()));
 			txtFluff.setBorder(BorderFactory.createCompoundBorder(
 					BorderFactory.createTitledBorder("Unit History"),
-	                BorderFactory.createEmptyBorder(5,5,5,5)));
+					BorderFactory.createEmptyBorder(0,2,2,2)));
 			gridBagConstraints = new java.awt.GridBagConstraints();
 			gridBagConstraints.gridx = 0;
 			gridBagConstraints.gridy = 2;
-			gridBagConstraints.gridwidth = 2;
-			gridBagConstraints.weightx = 1.0;
+			gridBagConstraints.weightx = 0.0;
 			gridBagConstraints.weighty = 1.0;
+			gridBagConstraints.gridwidth = compWidth;
 			gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
 			gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
 			gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
@@ -173,15 +188,15 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		
 		lblType = new javax.swing.JLabel();
     	lblTech = new javax.swing.JLabel();
-		txtTech = new javax.swing.JTextArea();
+		txtTech = new javax.swing.JLabel();
 		lblTonnage = new javax.swing.JLabel();
-		txtTonnage = new javax.swing.JTextArea();
+		txtTonnage = new javax.swing.JLabel();
 		lblBV = new javax.swing.JLabel();
-		txtBV = new javax.swing.JTextArea();
+		txtBV = new javax.swing.JLabel();
 		lblCost = new javax.swing.JLabel();
-		txtCost = new javax.swing.JTextArea();
+		txtCost = new javax.swing.JLabel();
 		lblQuirk = new javax.swing.JLabel();
-		txtQuirk = new javax.swing.JTextArea();
+		txtQuirk = new javax.swing.JLabel();
 		
 		java.awt.GridBagConstraints gridBagConstraints;
 		pnlStats.setLayout(new java.awt.GridBagLayout());
@@ -210,9 +225,6 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		
 		txtTech.setName("lblTech2"); // NOI18N
 		txtTech.setText(TechConstants.getLevelDisplayableName(entity.getTechLevel()));
-		txtTech.setEditable(false);
-		txtTech.setLineWrap(true);
-		txtTech.setWrapStyleWord(true);
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 1;
 		gridBagConstraints.gridy = 1;
@@ -233,9 +245,6 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		
 		txtTonnage.setName("lblTonnage2"); // NOI18N
 		txtTonnage.setText(Double.toString(entity.getWeight()));
-		txtTonnage.setEditable(false);
-		txtTonnage.setLineWrap(true);
-		txtTonnage.setWrapStyleWord(true);
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 1;
 		gridBagConstraints.gridy = 2;
@@ -256,9 +265,6 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		
 		txtBV.setName("lblBV2"); // NOI18N
 		txtBV.setText(Integer.toString(entity.calculateBattleValue(true, true)));
-		txtBV.setEditable(false);
-		txtBV.setLineWrap(true);
-		txtBV.setWrapStyleWord(true);
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 1;
 		gridBagConstraints.gridy = 3;
@@ -285,9 +291,6 @@ public class UnitViewPanel extends javax.swing.JPanel {
 		
 		txtCost.setName("lblCost2"); // NOI18N
 		txtCost.setText(unit.getSellValue().toAmountAndSymbolString());
-		txtCost.setEditable(false);
-		txtCost.setLineWrap(true);
-		txtCost.setWrapStyleWord(true);
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 1;
 		gridBagConstraints.gridy = 4;
@@ -310,9 +313,6 @@ public class UnitViewPanel extends javax.swing.JPanel {
 			
 			txtQuirk.setName("lblQuirk2"); // NOI18N
 			txtQuirk.setText(unit.getQuirksList());
-			txtQuirk.setEditable(false);
-			txtQuirk.setLineWrap(true);
-			txtQuirk.setWrapStyleWord(true);
 			gridBagConstraints = new java.awt.GridBagConstraints();
 			gridBagConstraints.gridx = 1;
 			gridBagConstraints.gridy = 5;

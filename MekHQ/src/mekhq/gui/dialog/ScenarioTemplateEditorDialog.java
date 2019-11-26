@@ -27,6 +27,7 @@ import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -66,6 +67,7 @@ import mekhq.MekHQ;
 import mekhq.campaign.mission.AtBScenario;
 import mekhq.campaign.mission.ScenarioForceTemplate;
 import mekhq.campaign.mission.ScenarioMapParameters;
+import mekhq.campaign.mission.ScenarioObjective;
 import mekhq.campaign.mission.ScenarioForceTemplate.ForceAlignment;
 import mekhq.campaign.mission.ScenarioForceTemplate.ForceGenerationMethod;
 import mekhq.campaign.mission.ScenarioForceTemplate.SynchronizedDeploymentType;
@@ -115,6 +117,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
     JSpinner spnArrivalTurn;
     JSpinner spnFixedUnitCount;
     JComboBox<String> cboMaxWeightClass;
+    JComboBox<String> cboMinWeightClass;
     JCheckBox chkContributesToMapSize;
     JSpinner spnGenerationOrder;
     JCheckBox chkAllowAeroBombs;
@@ -137,8 +140,11 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
     JRadioButton btnUseSpaceMap;
     JRadioButton btnUseSpecificMapTypes;
     JRadioButton btnUseLowAtmosphereMap;
-    JComboBox<AtBScenarioModifier> modifierBox;
+    JComboBox<String> modifierBox;
     JList<String> selectedModifiersList;
+    JList<ScenarioObjective> objectiveList;
+    JScrollPane objectiveScrollPane;
+    JButton btnRemoveObjective;
     
     JPanel globalPanel;
     
@@ -183,13 +189,14 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         
         JScrollPane globalScrollPane = new JScrollPane(globalPanel);
         globalScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        globalScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        globalScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         getContentPane().add(globalScrollPane);        
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
         setupTopFluff(gbc);
+        setupObjectiveEditUI(gbc);
         setupForceEditorHeaders(gbc);
         setupForceEditor(gbc);
         initializeForceList(gbc);
@@ -199,8 +206,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         forceAlignmentChangeHandler();
         updateForceSyncList();
         renderForceList();
-        
-        globalScrollPane.setPreferredSize(new Dimension((int) globalPanel.getPreferredSize().getWidth() + 10, (int) globalPanel.getPreferredSize().getHeight()));
+        updateObjectiveList();
     }
 
     /**
@@ -254,6 +260,73 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         globalPanel.add(scrLongBriefing, gbc);
     }
     
+    private void setupObjectiveEditUI(GridBagConstraints gbc) {
+        gbc.gridy++;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+        
+        JPanel pnlObjectiveEdit = new JPanel();
+        pnlObjectiveEdit.setLayout(new GridBagLayout());
+        GridBagConstraints localGbc = new GridBagConstraints();
+        localGbc.insets = new Insets(0, 0, 0, 5);
+        
+        ScenarioTemplateEditorDialog parent = this;
+        
+        JButton btnAddEditObjective = new JButton("Add/Edit Objective");
+        btnAddEditObjective.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ObjectiveEditPanel oep;
+                if(objectiveList.getSelectedValue() != null) {
+                    oep = new ObjectiveEditPanel(scenarioTemplate, objectiveList.getSelectedValue(), parent);
+                } else {
+                    oep = new ObjectiveEditPanel(scenarioTemplate, parent);
+                }
+                oep.setModal(true);
+                oep.requestFocus();
+                oep.setVisible(true);
+            }
+        
+        });
+        
+        
+        objectiveList = new JList<>();
+        objectiveList.addListSelectionListener(e -> btnRemoveObjective.setEnabled(objectiveList.getSelectedValuesList().size() > 0));
+        objectiveList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        objectiveList.setVisibleRowCount(5);
+        objectiveList.setFixedCellWidth(400);
+        objectiveScrollPane = new JScrollPane();
+        objectiveScrollPane.setViewportView(objectiveList);
+        
+        btnRemoveObjective = new JButton("Remove");
+        btnRemoveObjective.addActionListener(e -> this.removeObjective());
+        
+        JLabel lblObjectives = new JLabel("Objectives:");
+        
+        localGbc.gridx = 0;
+        localGbc.gridy = 0;
+        pnlObjectiveEdit.add(lblObjectives, localGbc);
+        
+        localGbc.gridx = 1;
+        localGbc.gridy = 1;
+        localGbc.gridheight = GridBagConstraints.REMAINDER;
+        pnlObjectiveEdit.add(objectiveScrollPane, localGbc);
+        
+        localGbc.gridx = 2;
+        localGbc.gridy = 2;
+        localGbc.gridheight = 1;
+        pnlObjectiveEdit.add(btnAddEditObjective, localGbc);
+        localGbc.gridy = 3;
+        pnlObjectiveEdit.add(btnRemoveObjective, localGbc);
+        
+        
+        gbc.gridx = 0;
+        gbc.gridy++;
+        
+        globalPanel.add(pnlObjectiveEdit, gbc);
+    }
+    
     /**
      * Worker function that sets up top-level headers for the force template editor section.
      * @param gbc
@@ -278,7 +351,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         
         gbc.gridx++;
         int previousAnchor = gbc.anchor;
-        gbc.anchor = GridBagConstraints.EAST;
+        gbc.anchor = GridBagConstraints.WEST;
         globalPanel.add(btnHideShow, gbc);
         gbc.anchor = previousAnchor;
     }
@@ -498,6 +571,19 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         gbc.gridx++;
         forcedPanel.add(cboMaxWeightClass, gbc);
         
+        JLabel lblMinWeight= new JLabel("Min Weight:");
+        gbc.gridx--;
+        gbc.gridy++;
+        forcedPanel.add(lblMinWeight, gbc);
+        
+        cboMinWeightClass = new JComboBox<>();
+        for(int x = EntityWeightClass.WEIGHT_ULTRA_LIGHT; x <= EntityWeightClass.WEIGHT_ASSAULT; x++) {
+            cboMinWeightClass.addItem(EntityWeightClass.getClassName(x));
+        }
+        cboMinWeightClass.setSelectedIndex(EntityWeightClass.WEIGHT_LIGHT);
+        gbc.gridx++;
+        forcedPanel.add(cboMinWeightClass, gbc);
+        
         JLabel lblContributesToMapSize = new JLabel("Contributes to Map Size:");
         gbc.gridx--;
         gbc.gridy++;
@@ -592,6 +678,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         spnArrivalTurn.setValue(forceTemplate.getArrivalTurn());
         spnFixedUnitCount.setValue(forceTemplate.getFixedUnitCount());
         cboMaxWeightClass.setSelectedIndex(forceTemplate.getMaxWeightClass());
+        cboMinWeightClass.setSelectedIndex(forceTemplate.getMinWeightClass());
         chkContributesToMapSize.setSelected(forceTemplate.getContributesToMapSize());
         spnGenerationOrder.setValue(forceTemplate.getGenerationOrder());
         chkAllowAeroBombs.setSelected(forceTemplate.getAllowAeroBombs());
@@ -627,69 +714,75 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
      */
     private void setupMapParameters(GridBagConstraints gbc) {
         gbc.gridx = 0;
-        int currentGridY = gbc.gridy;
+        
+        JPanel pnlMapParameters = new JPanel();
+        pnlMapParameters.setLayout(new GridBagLayout());
+        GridBagConstraints localGbc = new GridBagConstraints();
+        localGbc.gridx = 0;
+        localGbc.gridy = 0;
+        localGbc.anchor = GridBagConstraints.WEST;
+        
+        JLabel lblMapParameters = new JLabel("Scenario Map Parameters:");
+        pnlMapParameters.add(lblMapParameters, localGbc);
                 
-        JLabel lblMapParameters = new JLabel("Scenario Map Parameters");
-        globalPanel.add(lblMapParameters, gbc);
-        
         // the first two columns
-        gbc.gridy++;
-        gbc.gridwidth = 1;
+        localGbc.gridy++;
+        localGbc.gridwidth = 1;
         JLabel lblBaseWidth = new JLabel("Base Width:");
-        globalPanel.add(lblBaseWidth, gbc);
+        pnlMapParameters.add(lblBaseWidth, localGbc);
         
-        gbc.gridx++;
+        localGbc.gridx++;
         txtBaseWidth = new JTextField(4);
         txtBaseWidth.setText(String.valueOf(scenarioTemplate.mapParameters.getBaseWidth()));
-        globalPanel.add(txtBaseWidth, gbc);
+        pnlMapParameters.add(txtBaseWidth, localGbc);
         
-        gbc.gridx = 0;
-        gbc.gridy++;
+        localGbc.gridx = 0;
+        localGbc.gridy++;
         JLabel lblBaseHeight = new JLabel("Base Height:");
-        globalPanel.add(lblBaseHeight, gbc);
+        pnlMapParameters.add(lblBaseHeight, localGbc);
         
-        gbc.gridx++;
+        localGbc.gridx++;
         txtBaseHeight = new JTextField(4);
         txtBaseHeight.setText(String.valueOf(scenarioTemplate.mapParameters.getBaseHeight()));
-        globalPanel.add(txtBaseHeight, gbc);
+        pnlMapParameters.add(txtBaseHeight, localGbc);
 
-        gbc.gridy++;
-        gbc.gridx = 0;
+        localGbc.gridy++;
+        localGbc.gridx = 0;
         JLabel lblXIncrement = new JLabel("Scaled Width Increment:");
-        globalPanel.add(lblXIncrement, gbc);
+        pnlMapParameters.add(lblXIncrement, localGbc);
         
-        gbc.gridx++;
+        localGbc.gridx++;
         txtXIncrement = new JTextField(4);
         txtXIncrement.setText(String.valueOf(scenarioTemplate.mapParameters.getWidthScalingIncrement()));
-        globalPanel.add(txtXIncrement, gbc);
+        pnlMapParameters.add(txtXIncrement, localGbc);
         
-        gbc.gridy++;
-        gbc.gridx = 0;
+        localGbc.gridy++;
+        localGbc.gridx = 0;
         JLabel lblYIncrement = new JLabel("Scaled Height Increment:");
-        globalPanel.add(lblYIncrement, gbc);
+        pnlMapParameters.add(lblYIncrement, localGbc);
         
-        gbc.gridx++;
+        localGbc.gridx++;
         txtYIncrement = new JTextField(4);
         txtYIncrement.setText(String.valueOf(scenarioTemplate.mapParameters.getHeightScalingIncrement()));
-        globalPanel.add(txtYIncrement, gbc);
+        pnlMapParameters.add(txtYIncrement, localGbc);
         
-        gbc.gridy++;
-        gbc.gridx = 0;
+        localGbc.gridy++;
+        localGbc.gridx = 0;
         JLabel lblAllowRotation = new JLabel("Allow 90 Degree Rotation:");
-        globalPanel.add(lblAllowRotation, gbc);
+        pnlMapParameters.add(lblAllowRotation, localGbc);
         
-        gbc.gridx++;
+        localGbc.gridx++;
         chkAllowRotation = new JCheckBox();
         chkAllowRotation.setSelected(scenarioTemplate.mapParameters.isAllowRotation());
-        globalPanel.add(chkAllowRotation, gbc);
+        pnlMapParameters.add(chkAllowRotation, localGbc);
         
-        gbc.gridy++;
-        gbc.gridx = 0;
+        localGbc.gridy++;
+        localGbc.gridx = 0;
         JLabel lblUseAtBSizing = new JLabel("Use AtB Base Dimensions:");
         lblUseAtBSizing.setToolTipText("Use the AtB Map Sizes table to determine the base width and height of the map.");
-        globalPanel.add(lblUseAtBSizing, gbc);
+        pnlMapParameters.add(lblUseAtBSizing, localGbc);
         
-        gbc.gridx++;
+        localGbc.gridx++;
         chkUseAtBSizing = new JCheckBox();
         chkUseAtBSizing.addItemListener(new ItemListener() {
 
@@ -700,17 +793,16 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
             
         });
         chkUseAtBSizing.setSelected(scenarioTemplate.mapParameters.isUseStandardAtBSizing());
-        globalPanel.add(chkUseAtBSizing, gbc);
-        int bottomGridY = gbc.gridy;
+        pnlMapParameters.add(chkUseAtBSizing, localGbc);
         
-        gbc.gridy = currentGridY;
-        gbc.gridx = 2;
+        localGbc.gridy = 1;
+        localGbc.gridx = 2;
         
         // the allowed map types columns
         JLabel lblAllowedTerrainTypes = new JLabel("Allowed Map Types:");
-        globalPanel.add(lblAllowedTerrainTypes, gbc);
+        pnlMapParameters.add(lblAllowedTerrainTypes, localGbc);
         
-        gbc.gridy++;
+        localGbc.gridy++;
         btnAllowAllMapTypes = new JRadioButton();
         btnAllowAllMapTypes.setText("Any Ground Map");
         btnAllowAllMapTypes.addItemListener(new ItemListener() {
@@ -721,9 +813,9 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
             }
             
         });
-        globalPanel.add(btnAllowAllMapTypes, gbc);
+        pnlMapParameters.add(btnAllowAllMapTypes, localGbc);
         
-        gbc.gridy++;
+        localGbc.gridy++;
         btnUseSpaceMap = new JRadioButton();
         btnUseSpaceMap.setText("Use Space Map");
         btnUseSpaceMap.addItemListener(new ItemListener() {
@@ -734,9 +826,9 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
             }
             
         });
-        globalPanel.add(btnUseSpaceMap, gbc);
+        pnlMapParameters.add(btnUseSpaceMap, localGbc);
         
-        gbc.gridy++;
+        localGbc.gridy++;
         btnUseLowAtmosphereMap = new JRadioButton();
         btnUseLowAtmosphereMap.setText("Use Low Atmo Map");
         btnUseLowAtmosphereMap.addItemListener(new ItemListener() {
@@ -747,9 +839,9 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
             }
             
         });
-        globalPanel.add(btnUseLowAtmosphereMap, gbc);        
+        pnlMapParameters.add(btnUseLowAtmosphereMap, localGbc);        
         
-        gbc.gridy++;
+        localGbc.gridy++;
         btnUseSpecificMapTypes = new JRadioButton();
         btnUseSpecificMapTypes.setText("Specific Map Types");
         btnUseSpecificMapTypes.addItemListener(new ItemListener() {
@@ -760,7 +852,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
             }
             
         });
-        globalPanel.add(btnUseSpecificMapTypes, gbc);
+        pnlMapParameters.add(btnUseSpecificMapTypes, localGbc);
         
         ButtonGroup mapTypeGroup = new ButtonGroup();
         mapTypeGroup.add(btnAllowAllMapTypes);
@@ -785,9 +877,9 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
             }
         }
         
-        gbc.gridx++;
-        gbc.gridy = currentGridY + 1;
-        gbc.gridheight = GridBagConstraints.RELATIVE;
+        localGbc.gridx++;
+        localGbc.gridy = 1;
+        localGbc.gridheight = GridBagConstraints.RELATIVE;
         lstAllowedTerrainTypes = new JList<>();
         DefaultListModel<String> terrainTypeModel = new DefaultListModel<>();
         for(String terrainType : AtBScenario.terrainTypes) {
@@ -796,22 +888,22 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         lstAllowedTerrainTypes.setModel(terrainTypeModel);
         lstAllowedTerrainTypes.setSelectedIndices(scenarioTemplate.mapParameters.getAllowedTerrainTypeArray());       
         mapTypeChangeHandler();
-        globalPanel.add(lstAllowedTerrainTypes, gbc);
+        pnlMapParameters.add(lstAllowedTerrainTypes, localGbc);
         
         // the fixed events columns
-        gbc.gridy = currentGridY;
-        gbc.gridx++;
-        gbc.gridheight = 1;
-        globalPanel.add(new JLabel("Fixed Modifiers"), gbc);
+        localGbc.gridy = 1;
+        localGbc.gridx++;
+        localGbc.gridheight = 1;
+        pnlMapParameters.add(new JLabel("Fixed Modifiers"), localGbc);
         
-        gbc.gridy++;
+        localGbc.gridy++;
         modifierBox = new JComboBox<>();
-        for(AtBScenarioModifier modifier : AtBScenarioModifier.getScenarioModifiers().values()) {
-            modifierBox.addItem(modifier);
+        for(String modifierKey : AtBScenarioModifier.getOrderedModifierKeys()) {
+            modifierBox.addItem(modifierKey);
         }
-        globalPanel.add(modifierBox, gbc);
+        pnlMapParameters.add(modifierBox, localGbc);
         
-        gbc.gridx++;
+        localGbc.gridx++;
         JButton btnAddModifier = new JButton("Add");
         btnAddModifier.addActionListener(new ActionListener() {
             @Override
@@ -819,11 +911,11 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
                 addModifierHandler();
             } 
         });
-        globalPanel.add(btnAddModifier, gbc);
+        pnlMapParameters.add(btnAddModifier, localGbc);
         
-        gbc.gridx--;
-        gbc.gridy++;
-        gbc.gridheight = 3;
+        localGbc.gridx--;
+        localGbc.gridy++;
+        localGbc.gridheight = 3;
         
         selectedModifiersList = new JList<>();
         selectedModifiersList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -831,9 +923,9 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         
         JScrollPane modifierScrollPane = new JScrollPane(selectedModifiersList);
         modifierScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        globalPanel.add(modifierScrollPane, gbc);
+        pnlMapParameters.add(modifierScrollPane, localGbc);
 
-        gbc.gridx++;
+        localGbc.gridx++;
         JButton btnRemoveModifier = new JButton("Remove");
         btnRemoveModifier.addActionListener(new ActionListener() {
             @Override
@@ -841,10 +933,10 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
                 removeModifierHandler();
             } 
         });
-        globalPanel.add(btnRemoveModifier, gbc);
+        pnlMapParameters.add(btnRemoveModifier, localGbc);
         
-        gbc.gridheight = 1;
-        gbc.gridy = bottomGridY + 1;
+        gbc.gridy++;
+        globalPanel.add(pnlMapParameters, gbc);
     }
     
     /**
@@ -853,6 +945,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
      */
     private void setupBottomButtons(GridBagConstraints gbc) {
         gbc.gridx = 0;
+        gbc.gridy++;
         
         JButton btnSave = new JButton("Save");
         btnSave.setActionCommand(SAVE_TEMPLATE_COMMAND);
@@ -1029,12 +1122,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
             gbc.gridx++;
             panForceList.add(lblRetreatThreshold, gbc);
             
-            JLabel lblAllowedUnitTypes = new JLabel();
-            if(sft.getAllowedUnitType() > UnitType.SIZE || sft.getAllowedUnitType() < 0) {
-                lblAllowedUnitTypes.setText(ScenarioForceTemplate.SPECIAL_UNIT_TYPES.get(sft.getAllowedUnitType()));
-            } else {
-                lblAllowedUnitTypes.setText(UnitType.getTypeDisplayableName(sft.getAllowedUnitType()));
-            }
+            JLabel lblAllowedUnitTypes = new JLabel(sft.getAllowedUnitTypeName());
             gbc.gridx++;
             if(!sft.isPlayerForce()) {
                 panForceList.add(lblAllowedUnitTypes, gbc);
@@ -1124,6 +1212,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         sft.setFixedUnitCount((int) spnFixedUnitCount.getValue());
         sft.setContributesToMapSize(chkContributesToMapSize.isSelected());
         sft.setMaxWeightClass(cboMaxWeightClass.getSelectedIndex());
+        sft.setMinWeightClass(cboMinWeightClass.getSelectedIndex());
         sft.setGenerationOrder((int) spnGenerationOrder.getValue());
         sft.setAllowAeroBombs(chkAllowAeroBombs.isSelected());
         sft.setStartingAltitude((int) spnStartingAltitude.getValue());
@@ -1271,6 +1360,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         spnMultiplier.setEnabled(!isPlayerForce);
         spnRetreatThreshold.setEnabled(!isPlayerForce);
         cboMaxWeightClass.setEnabled(!isPlayerForce);
+        cboMinWeightClass.setEnabled(!isPlayerForce);
         chkContributesToBV.setEnabled(!isEnemyForce);
         chkContributesToBV.setSelected(!isEnemyForce);
         chkContributesToUnitCount.setEnabled(!isEnemyForce);
@@ -1365,6 +1455,7 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
         initComponents();
         pack();
         validate();
+        setUserPreferences();
     }
 
     /**
@@ -1418,8 +1509,29 @@ public class ScenarioTemplateEditorDialog extends JDialog implements ActionListe
     /**
      * Helper method that hides or reveals the force editor section.
      */
-    public void toggleForcePanelVisibility() {
+    private void toggleForcePanelVisibility() {
         forcedPanel.setVisible(!forcedPanel.isVisible());
         forceScrollPane.setVisible(!forceScrollPane.isVisible() && !scenarioTemplate.scenarioForces.isEmpty());
+    }
+    
+    private void removeObjective() {
+        for(ScenarioObjective objective : objectiveList.getSelectedValuesList()) {
+            scenarioTemplate.scenarioObjectives.remove(objective);
+        }
+        
+        btnRemoveObjective.setEnabled(false);
+        updateObjectiveList();
+    }
+    
+    public void updateObjectiveList() {
+        DefaultListModel<ScenarioObjective> objectiveModel = new DefaultListModel<>();
+        for(ScenarioObjective currentObjective : scenarioTemplate.scenarioObjectives) {
+            objectiveModel.addElement(currentObjective);
+        }
+        
+        objectiveList.setModel(objectiveModel);
+        
+        validate();
+        pack();
     }
 }

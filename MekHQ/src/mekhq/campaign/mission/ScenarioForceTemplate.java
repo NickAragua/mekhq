@@ -1,7 +1,26 @@
+/*
+ * Copyright (c) 2019 The Megamek Team. All rights reserved.
+ *
+ * This file is part of MekHQ.
+ *
+ * MekHQ is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * MekHQ is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with MekHQ.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package mekhq.campaign.mission;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +34,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import org.w3c.dom.Node;
 
 import megamek.common.Board;
+import megamek.common.UnitType;
 import mekhq.MekHQ;
 
 public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> {
@@ -56,7 +76,6 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
     // this is used to indicate that a "fixed" size unit should deploy as a lance 
     public static final int FIXED_UNIT_SIZE_LANCE = -1;
     
-    public static final String PRIMARY_FORCE_TEMPLATE_ID = "Player";
     public static final String REINFORCEMENT_TEMPLATE_ID = "Reinforcements";
     
     public enum ForceAlignment {
@@ -202,6 +221,11 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
     private int maxWeightClass;
     
     /**
+     * Minimum weight class of this force.
+     */
+    private int minWeightClass;
+    
+    /**
      * Whether or not this force contributes to scaling map size.
      */
     private boolean contributesToMapSize;
@@ -250,10 +274,17 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
     private boolean deployOffBoard = false;
     
     /**
+     * A list of force IDs with which this force will be linked for objective purposes.
+     * e.g. if there's an objective to destroy 50% of "Primary Opfor", this force will count towards that as well.
+     */
+    private List<String> objectiveLinkedForces;
+    
+    /**
      * Blank constructor for deserialization purposes.
      */
     public ScenarioForceTemplate() {
-        
+        deploymentZones = new ArrayList<>();
+        objectiveLinkedForces = new ArrayList<>();
     }
     
     public ScenarioForceTemplate(int forceAlignment, int generationMethod, double forceMultiplier, List<Integer> deploymentZones,
@@ -261,11 +292,11 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
         this.forceAlignment = forceAlignment;
         this.generationMethod = generationMethod;
         this.forceMultiplier = forceMultiplier;
-        this.deploymentZones = new ArrayList<>();
         this.destinationZone = destinationZone;
         this.retreatThreshold = retreatThreshold;
         this.allowedUnitType = allowedUnitType;
         this.deploymentZones = deploymentZones == null ? new ArrayList<>() : new ArrayList<>(deploymentZones);
+        this.objectiveLinkedForces = new ArrayList<>();
     }
     
     public int getForceAlignment() {
@@ -430,6 +461,14 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
         this.maxWeightClass = maxWeightClass;
     }
     
+    public int getMinWeightClass() {
+        return minWeightClass;
+    }
+
+    public void setMinWeightClass(int minWeightClass) {
+        this.minWeightClass = minWeightClass;
+    }
+
     public void setContributesToMapSize(boolean contributesToMapSize) {
         this.contributesToMapSize = contributesToMapSize;
     }
@@ -456,6 +495,16 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
     
     public void setDeployOffboard(boolean deployOffBoard) {
         this.deployOffBoard = deployOffBoard;
+    }
+    
+    @XmlElementWrapper(name="objectiveLinkedForces")
+    @XmlElement(name="objectiveLinkedForce")
+    public List<String> getObjectiveLinkedForces() {
+        return objectiveLinkedForces;
+    }
+
+    public void setObjectiveLinkedForces(List<String> objectiveLinkedForces) {
+        this.objectiveLinkedForces = objectiveLinkedForces;
     }
     
     /**
@@ -492,9 +541,21 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
     }
     
     /**
-     * Attempt to deserialize an instance of a ScenarioTemplate from the passed-in XML Node
+     * Convenience function that returns the displayable name of the selected unit type.
+     * @return
+     */
+    public String getAllowedUnitTypeName() {
+        if(getAllowedUnitType() >= UnitType.SIZE || getAllowedUnitType() < 0) {
+            return SPECIAL_UNIT_TYPES.get(getAllowedUnitType());
+        } else {
+            return UnitType.getTypeDisplayableName(getAllowedUnitType());
+        }
+    }
+    
+    /**
+     * Attempt to deserialize an instance of a ScenarioForceTemplate from the passed-in XML Node
      * @param inputFile The source file
-     * @return Possibly an instance of a ScenarioTemplate
+     * @return Possibly an instance of a ScenarioForceTemplate
      */
     public static ScenarioForceTemplate Deserialize(Node xmlNode) {
         ScenarioForceTemplate resultingTemplate = null;
@@ -520,5 +581,24 @@ public class ScenarioForceTemplate implements Comparable<ScenarioForceTemplate> 
         } else {
             return this.forceName.charAt(0) > o.forceName.charAt(0) ? 1 : -1;
         }
+    }
+    
+    /**
+     * Convenient factory method to return a default "Reinforcements" force template
+     * generally useful if the scenario does not have one specified
+     */
+    public static ScenarioForceTemplate getDefaultReinforcementsTemplate() {
+        final List<Integer> reinforcementDeploymentZones = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        ScenarioForceTemplate rft = new ScenarioForceTemplate();
+        rft.setAllowedUnitType(SPECIAL_UNIT_TYPE_ATB_MIX);
+        rft.setCanReinforceLinked(true);
+        rft.setDeploymentZones(reinforcementDeploymentZones);
+        rft.setArrivalTurn(ARRIVAL_TURN_AS_REINFORCEMENTS);
+        rft.setForceAlignment(ForceAlignment.Player.ordinal());
+        rft.setForceName(REINFORCEMENT_TEMPLATE_ID);
+        rft.setGenerationMethod(ForceGenerationMethod.PlayerSupplied.ordinal());
+        rft.setGenerationOrder(1);
+
+        return rft;
     }
 }

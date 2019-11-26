@@ -22,17 +22,7 @@ import javax.swing.event.MouseInputAdapter;
 
 import megamek.client.ui.swing.UnitEditorDialog;
 import megamek.client.ui.swing.util.MenuScroller;
-import megamek.common.Aero;
-import megamek.common.AmmoType;
-import megamek.common.BattleArmor;
-import megamek.common.CriticalSlot;
-import megamek.common.Entity;
-import megamek.common.EquipmentType;
-import megamek.common.IBomber;
-import megamek.common.Infantry;
-import megamek.common.Mech;
-import megamek.common.MechSummaryCache;
-import megamek.common.Player;
+import megamek.common.*;
 import megamek.common.loaders.BLKFile;
 import megamek.common.util.EncodeControl;
 import mekhq.MekHQ;
@@ -62,8 +52,8 @@ import mekhq.gui.dialog.BombsDialog;
 import mekhq.gui.dialog.CamoChoiceDialog;
 import mekhq.gui.dialog.ChooseRefitDialog;
 import mekhq.gui.dialog.LargeCraftAmmoSwapDialog;
+import mekhq.gui.dialog.MarkdownEditorDialog;
 import mekhq.gui.dialog.QuirksDialog;
-import mekhq.gui.dialog.TextAreaDialog;
 import mekhq.gui.model.UnitTableModel;
 import mekhq.gui.utilities.StaticChecks;
 
@@ -382,7 +372,7 @@ public class UnitTableMouseAdapter extends MouseInputAdapter implements
             crd.setVisible(true);
         } else if (command.contains("CHANGE_HISTORY")) {
             if (null != selectedUnit) {
-                TextAreaDialog tad = new TextAreaDialog(gui.getFrame(), true,
+                MarkdownEditorDialog tad = new MarkdownEditorDialog(gui.getFrame(), true,
                         "Edit Unit History", selectedUnit.getHistory());
                 tad.setVisible(true);
                 if (tad.wasChanged()) {
@@ -887,13 +877,7 @@ public class UnitTableMouseAdapter extends MouseInputAdapter implements
                     menuItem.setActionCommand("CUSTOMIZE");
                     menuItem.addActionListener(this);
                     menuItem.setEnabled(unit.isAvailable()
-                            && ((unit.getEntity().getEntityType() &
-                                    (Entity.ETYPE_FIXED_WING_SUPPORT
-                                            | Entity.ETYPE_JUMPSHIP
-                                            | Entity.ETYPE_SUPPORT_TANK
-                                            | Entity.ETYPE_SUPPORT_VTOL
-                                            | Entity.ETYPE_PROTOMECH
-                                            | Entity.ETYPE_GUN_EMPLACEMENT)) == 0));
+                            && !(unit.getEntity() instanceof GunEmplacement));
                     menu.add(menuItem);
                 }
                 if (unit.isRefitting()) {

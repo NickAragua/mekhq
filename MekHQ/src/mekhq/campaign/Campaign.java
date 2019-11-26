@@ -168,10 +168,11 @@ import mekhq.campaign.universe.IUnitGenerator;
 import mekhq.campaign.universe.News;
 import mekhq.campaign.universe.NewsItem;
 import mekhq.campaign.universe.Planet;
-import mekhq.campaign.universe.Planets;
+import mekhq.campaign.universe.PlanetarySystem;
 import mekhq.campaign.universe.RATGeneratorConnector;
 import mekhq.campaign.universe.RATManager;
 import mekhq.campaign.universe.RandomFactionGenerator;
+import mekhq.campaign.universe.Systems;
 import mekhq.campaign.work.IAcquisitionWork;
 import mekhq.campaign.work.IPartWork;
 import mekhq.gui.GuiTabType;
@@ -300,6 +301,8 @@ public class Campaign implements Serializable, ITechManager {
         game.addPlayer(0, player);
         calendar = new GregorianCalendar(3067, Calendar.JANUARY, 1);
         CurrencyManager.getInstance().setCampaign(this);
+        location = new CurrentLocation(Systems.getInstance().getSystems()
+                .get("Outreach"), 0);
         campaignOptions = new CampaignOptions();
         currentReport = new ArrayList<>();
         currentReportHTML = "";
@@ -320,7 +323,6 @@ public class Campaign implements Serializable, ITechManager {
         forceIds.put(0, forces);
         lances = new Hashtable<>();
         finances = new Finances();
-        location = new CurrentLocation(Planets.getInstance().getPlanets().get("Outreach"), 0);
         SkillType.initializeTypes();
         SpecialAbility.initializeSPA();
         astechPool = 0;
@@ -453,16 +455,12 @@ public class Campaign implements Serializable, ITechManager {
         this.rng = g;
     }
 
-    public String getCurrentPlanetName() {
-        return location.getCurrentPlanet().getPrintableName(Utilities.getDateTimeDay(calendar));
+    public String getCurrentSystemName() {
+        return location.getCurrentSystem().getPrintableName(Utilities.getDateTimeDay(calendar));
     }
 
-    public Planet getCurrentPlanet() {
-        if (location == null) {
-            return  null;
-        }
-
-        return location.getCurrentPlanet();
+    public PlanetarySystem getCurrentSystem() {
+        return location.getCurrentSystem();
     }
 
     public Money getFunds() {
@@ -2132,31 +2130,26 @@ public class Campaign implements Serializable, ITechManager {
                 personTitle = person.getHyperlinkedFullTitle() + " ";
             }
 
-            // find planets within a certain radius - the function will weed out dead
-            // planets
-            List<Planet> planets = Planets.getInstance().getShoppingPlanets(getCurrentPlanet(),
-                    getCampaignOptions().getMaxJumpsPlanetaryAcquisition(), currentDate);
+            //find planets within a certain radius - the function will weed out dead planets
+            List<PlanetarySystem> systems = Systems.getInstance().getShoppingSystems(getCurrentSystem(),
+                    getCampaignOptions().getMaxJumpsPlanetaryAcquisition(),
+                    currentDate);
 
-            for (Planet planet : planets) {
+            for(PlanetarySystem system: systems) {
                 ArrayList<IAcquisitionWork> remainingItems = new ArrayList<IAcquisitionWork>();
 
-                // loop through shopping list. If its time to check, then check as appropriate.
-                // Items not
-                // found get added to the remaining item list
-                for (IAcquisitionWork shoppingItem : currentList) {
-                    if (shoppingItem.getDaysToWait() <= 0) {
-                        if (findContactForAcquisition(shoppingItem, person, planet)) {
-                            int transitTime = calculatePartTransitTime(planet);
+                //loop through shopping list. If its time to check, then check as appropriate. Items not
+                //found get added to the remaining item list
+                for(IAcquisitionWork shoppingItem : currentList) {
+                    if(shoppingItem.getDaysToWait() <= 0) {
+                        if(findContactForAcquisition(shoppingItem, person, system)) {
+                            int transitTime = calculatePartTransitTime(system);
                             int totalQuantity = 0;
-                            while (shoppingItem.getQuantity() > 0
-                                    && acquireEquipment(shoppingItem, person, planet, transitTime)) {
+                            while(shoppingItem.getQuantity() > 0 && acquireEquipment(shoppingItem, person, system, transitTime)) {
                                 totalQuantity++;
                             }
-                            if (totalQuantity > 0) {
-                                addReport(personTitle + "<font color='green'><b> found "
-                                        + shoppingItem.getQuantityName(totalQuantity) + " on "
-                                        + planet.getName(currentDate) + ". Delivery in " + transitTime
-                                        + " days.</b></font>");
+                            if(totalQuantity > 0) {
+                                addReport(personTitle + "<font color='green'><b> found " + shoppingItem.getQuantityName(totalQuantity) + " on " + system.getPrintableName(currentDate) + ". Delivery in " + transitTime + " days.</b></font>");
                             }
                         }
                     }
@@ -2215,30 +2208,31 @@ public class Campaign implements Serializable, ITechManager {
      * Make an acquisition roll for a given planet to see if you can identify a contact. Used for planetary based acquisition.
      * @param acquisition - The <code> IAcquisitionWork</code> being acquired.
      * @param person - The <code>Person</code> object attempting to do the acquiring.  may be null if no one on the force has the skill or the user is using automatic acquisition.
-     * @param planet - The <code>Planet</code> object where the acquisition is being attempted. This may be null if the user is not using planetary acquisition.
+     * @param system - The <code>PlanetarySystem</code> object where the acquisition is being attempted. This may be null if the user is not using planetary acquisition.
      * @return true if your target roll succeeded.
      */
-    public boolean findContactForAcquisition(IAcquisitionWork acquisition, Person person, Planet planet) {
+    public boolean findContactForAcquisition(IAcquisitionWork acquisition, Person person, PlanetarySystem system) {
+
         DateTime currentDate = Utilities.getDateTimeDay(getCalendar());
         TargetRoll target = getTargetForAcquisition(acquisition, person, false);
-        target = planet.getAcquisitionMods(target, getDate(), getCampaignOptions(), getFaction(),
+        target = system.getPrimaryPlanet().getAcquisitionMods(target, getDate(), getCampaignOptions(), getFaction(),
                 acquisition.getTechBase() == Part.T_CLAN);
 
         if (target.getValue() == TargetRoll.IMPOSSIBLE) {
             if(getCampaignOptions().usePlanetAcquisitionVerboseReporting()) {
-                addReport("<font color='red'><b>Can't search for " + acquisition.getAcquisitionName() + " on " + planet.getName(currentDate) + " because:</b></font> " + target.getDesc());
+                addReport("<font color='red'><b>Can't search for " + acquisition.getAcquisitionName() + " on " + system.getPrintableName(currentDate) + " because:</b></font> " + target.getDesc());
             }
             return false;
         }
         if(Compute.d6(2) < target.getValue()) {
             //no contacts on this planet, move along
             if(getCampaignOptions().usePlanetAcquisitionVerboseReporting()) {
-                addReport("<font color='red'><b>No contacts available for " + acquisition.getAcquisitionName() + " on " + planet.getName(currentDate) + "</b></font>");
+                addReport("<font color='red'><b>No contacts available for " + acquisition.getAcquisitionName() + " on " + system.getPrintableName(currentDate) + "</b></font>");
             }
             return false;
         } else {
             if(getCampaignOptions().usePlanetAcquisitionVerboseReporting()) {
-                addReport("<font color='green'>Possible contact for " + acquisition.getAcquisitionName() + " on " + planet.getName(currentDate) + "</font>");
+                addReport("<font color='green'>Possible contact for " + acquisition.getAcquisitionName() + " on " + system.getPrintableName(currentDate) + "</font>");
             }
             return true;
         }
@@ -2259,11 +2253,11 @@ public class Campaign implements Serializable, ITechManager {
      * Attempt to acquire a given <code>IAcquisitionWork</code> object.
      * @param acquisition - The <code> IAcquisitionWork</code> being acquired.
      * @param person - The <code>Person</code> object attempting to do the acquiring.  may be null if no one on the force has the skill or the user is using automatic acquisition.
-     * @param planet - The <code>Planet</code> object where the acquisition is being attempted. This may be null if the user is not using planetary acquisition.
+     * @param system - The <code>PlanetarySystem</code> object where the acquisition is being attempted. This may be null if the user is not using planetary acquisition.
      * @param transitDays - The number of days that the part should take to be delivered. If this value is entered as -1, then this method will determine transit time based on the users campaign options.
      * @return a boolean indicating whether the attempt to acquire equipment was successful.
      */
-    private boolean acquireEquipment(IAcquisitionWork acquisition, Person person, Planet planet, int transitDays) {
+    private boolean acquireEquipment(IAcquisitionWork acquisition, Person person, PlanetarySystem system, int transitDays) {
         boolean found = false;
         String report = "";
 
@@ -2278,8 +2272,8 @@ public class Campaign implements Serializable, ITechManager {
             target.addModifier(TargetRoll.IMPOSSIBLE, "Cannot afford this purchase");
         }
 
-        if(null != planet) {
-            target = planet.getAcquisitionMods(target, getDate(), getCampaignOptions(), getFaction(),
+        if(null != system) {
+            target = system.getPrimaryPlanet().getAcquisitionMods(target, getDate(), getCampaignOptions(), getFaction(),
                     acquisition.getTechBase() == Part.T_CLAN);
         }
 
@@ -2790,7 +2784,7 @@ public class Campaign implements Serializable, ITechManager {
         for(NewsItem article : news.fetchNewsFor(now)) {
             addReport(article.getHeadlineForReport());
         }
-        for(NewsItem article : Planets.getInstance().getPlanetaryNews(now)) {
+        for(NewsItem article : Systems.getInstance().getPlanetaryNews(now)) {
             addReport(article.getHeadlineForReport());
         }
     }
@@ -2837,7 +2831,7 @@ public class Campaign implements Serializable, ITechManager {
              * system for transport or splitting the unit, etc.
              */
             if (!getLocation().isOnPlanet() &&
-                    getLocation().getJumpPath().getLastPlanet().getId().equals(m.getPlanetId())) {
+                    getLocation().getJumpPath().getLastSystem().getId().equals(m.getSystemId())) {
                 /*
                  * transitTime is measured in days; round up to the next whole day, then convert
                  * to milliseconds
@@ -3418,6 +3412,13 @@ public class Campaign implements Serializable, ITechManager {
      */
     private void awardTrainingXPByMaximumRole(Lance l) {
         for (UUID trainerId : forceIds.get(l.getForceId()).getAllUnits()) {
+            Unit trainerUnit = getUnit(trainerId);
+
+            // not sure how this occurs, but it probably shouldn't halt processing of a new day.
+            if(trainerUnit == null) {
+                continue;
+            }
+
             Person commander = getUnit(trainerId).getCommander();
             // AtB 2.31: Training lance – needs a officer with Veteran skill levels
             //           and adds 1xp point to every Green skilled unit.
@@ -3430,7 +3431,13 @@ public class Campaign implements Serializable, ITechManager {
                     // ...and if the commander is better than a veteran, find all of
                     // the personnel under their command...
                     for (UUID traineeId : forceIds.get(l.getForceId()).getAllUnits()) {
-                        for (Person p : getUnit(traineeId).getCrew()) {
+                        Unit traineeUnit = getUnit(traineeId);
+
+                        if(traineeUnit == null) {
+                            continue;
+                        }
+
+                        for (Person p : traineeUnit.getCrew()) {
                             if (p == commander) {
                                 continue;
                             }
@@ -3668,6 +3675,8 @@ public class Campaign implements Serializable, ITechManager {
                     unitsToCheck.add(unit.getId());
                 }
             }
+
+            unit.resetEngineer();
         }
 
         for(UUID uid : unitsToCheck) {
@@ -4187,20 +4196,48 @@ public class Campaign implements Serializable, ITechManager {
 
         // Customised planetary events
         pw1.println("\t<customPlanetaryEvents>");
-        for(Planet p : Planets.getInstance().getPlanets().values()) {
-            List<Planet.PlanetaryEvent> customEvents = new ArrayList<>();
-            for(Planet.PlanetaryEvent event : p.getEvents()) {
-                if(event.custom) {
-                    customEvents.add(event);
+        for(PlanetarySystem psystem : Systems.getInstance().getSystems().values()) {
+        	//first check for system-wide events
+            List<PlanetarySystem.PlanetarySystemEvent> customSysEvents = new ArrayList<>();
+            for(PlanetarySystem.PlanetarySystemEvent event : psystem.getEvents()) {
+            	if(event.custom) {
+                    customSysEvents.add(event);
                 }
             }
-            if(!customEvents.isEmpty()) {
-                pw1.println("\t\t<planet><id>" + p.getId() + "</id>");
-                for(Planet.PlanetaryEvent event : customEvents) {
-                    Planets.getInstance().writePlanetaryEvent(pw1, event);
+            boolean startedSystem = false;
+            if(!customSysEvents.isEmpty()) {
+                pw1.println("\t\t<system><id>" + psystem.getId() + "</id>");
+                for(PlanetarySystem.PlanetarySystemEvent event : customSysEvents) {
+                    Systems.getInstance().writePlanetarySystemEvent(pw1, event);
                     pw1.println();
                 }
-                pw1.println("\t\t</planet>");
+                startedSystem = true;
+            }
+        	//now check for planetary events
+            for(Planet p : psystem.getPlanets()) {
+                List<Planet.PlanetaryEvent> customEvents = new ArrayList<>();
+	            for(Planet.PlanetaryEvent event : p.getEvents()) {
+	                if(event.custom) {
+	                    customEvents.add(event);
+	                }
+	            }
+	            if(!customEvents.isEmpty()) {
+	            	if(!startedSystem) {
+	            		//only write this if we haven't already started the system
+	            		pw1.println("\t\t<system><id>" + psystem.getId() + "</id>");
+	            	}
+	                pw1.println("\t\t\t<planet><sysPos>" + p.getSystemPosition() + "</sysPos>");
+	                for(Planet.PlanetaryEvent event : customEvents) {
+	                    Systems.getInstance().writePlanetaryEvent(pw1, event);
+	                    pw1.println();
+	                }
+	                pw1.println("\t\t\t</planet>");
+	                startedSystem = true;
+	            }
+            }
+            if(startedSystem) {
+            	//close the system
+                pw1.println("\t\t</system>");
             }
         }
         pw1.println("\t</customPlanetaryEvents>");
@@ -4339,24 +4376,28 @@ public class Campaign implements Serializable, ITechManager {
         }
     }
 
-    public ArrayList<Planet> getPlanets() {
-        ArrayList<Planet> plnts = new ArrayList<>(Planets.getInstance().getPlanets().size());
-        for (String key : Planets.getInstance().getPlanets().keySet()) {
-            plnts.add(Planets.getInstance().getPlanets().get(key));
+    public ArrayList<PlanetarySystem> getSystems() {
+        ArrayList<PlanetarySystem> systems = new ArrayList<PlanetarySystem>();
+        for (String key : Systems.getInstance().getSystems().keySet()) {
+            systems.add(Systems.getInstance().getSystems().get(key));
         }
-        return plnts;
+        return systems;
     }
 
-    public Vector<String> getPlanetNames() {
-        Vector<String> plntNames = new Vector<>(Planets.getInstance().getPlanets().size());
-        for (Planet key : Planets.getInstance().getPlanets().values()) {
-            plntNames.add(key.getPrintableName(Utilities.getDateTimeDay(calendar)));
-        }
-        return plntNames;
+    public PlanetarySystem getSystemById(String id) {
+        return Systems.getInstance().getSystemById(id);
     }
 
-    public Planet getPlanetByName(String name) {
-        return Planets.getInstance().getPlanetByName(name, Utilities.getDateTimeDay(calendar));
+    public Vector<String> getSystemNames() {
+        Vector<String> systemNames = new Vector<String>();
+        for (PlanetarySystem key : Systems.getInstance().getSystems().values()) {
+            systemNames.add(key.getPrintableName(Utilities.getDateTimeDay(calendar)));
+        }
+        return systemNames;
+    }
+
+    public PlanetarySystem getSystemByName(String name) {
+        return Systems.getInstance().getSystemByName(name, Utilities.getDateTimeDay(calendar));
     }
 
     public Person newPerson(int type) {
@@ -4604,6 +4645,7 @@ public class Campaign implements Serializable, ITechManager {
                         rskillPrefs.randomizeSkill(), bonus, mod);
                 break;
             case (Person.T_MECHANIC):
+            case Person.T_VEHICLE_CREW:
                 person.addSkill(SkillType.S_TECH_MECHANIC, expLvl,
                         rskillPrefs.randomizeSkill(), bonus, mod);
                 break;
@@ -4962,113 +5004,113 @@ public class Campaign implements Serializable, ITechManager {
      * @param end
      * @return
      */
-    public JumpPath calculateJumpPath(Planet start, Planet end) {
-        if (null == start) {
-            return null;
-        }
-        if ((null == end) || start.getId().equals(end.getId())) {
-            JumpPath jpath = new JumpPath();
-            jpath.addPlanet(start);
-            return jpath;
-        }
+    public JumpPath calculateJumpPath(PlanetarySystem start, PlanetarySystem end) {
+    	if (null == start) {
+    		return null;
+    	}
+    	if ((null == end) || start.getId().equals(end.getId())) {
+    		JumpPath jpath = new JumpPath();
+    		jpath.addSystem(start);
+    		return jpath;
+    	}
 
-        String startKey = start.getId();
-        String endKey = end.getId();
+    	String startKey = start.getId();
+    	String endKey = end.getId();
 
-        final DateTime now = Utilities.getDateTimeDay(calendar);
-        String current = startKey;
-        Set<String> closed = new HashSet<>();
-        Set<String> open = new HashSet<>();
-        boolean found = false;
-        int jumps = 0;
+    	final DateTime now = Utilities.getDateTimeDay(calendar);
+    	String current = startKey;
+    	Set<String> closed = new HashSet<>();
+    	Set<String> open = new HashSet<>();
+    	boolean found = false;
+    	int jumps = 0;
 
-        // we are going to through and set up some hashes that will make our
-        // work easier
-        // hash of parent key
-        Map<String, String> parent = new HashMap<>();
-        // hash of H for each planet which will not change
-        Map<String, Double> scoreH = new HashMap<>();
-        // hash of G for each planet which might change
-        Map<String, Double> scoreG = new HashMap<>();
+    	// we are going to through and set up some hashes that will make our
+    	// work easier
+    	// hash of parent key
+    	Map<String, String> parent = new HashMap<>();
+    	// hash of H for each planet which will not change
+    	Map<String, Double> scoreH = new HashMap<>();
+    	// hash of G for each planet which might change
+    	Map<String, Double> scoreG = new HashMap<>();
 
-        for (String key : Planets.getInstance().getPlanets().keySet()) {
-            scoreH.put(
-                    key,
-                    end.getDistanceTo(Planets.getInstance().getPlanets()
-                            .get(key)));
-        }
-        scoreG.put(current, 0.0);
-        closed.add(current);
+    	for (String key : Systems.getInstance().getSystems().keySet()) {
+    		scoreH.put(
+    				key,
+    				end.getDistanceTo(Systems.getInstance().getSystems()
+    						.get(key)));
+    	}
+    	scoreG.put(current, 0.0);
+    	closed.add(current);
 
-        while (!found && jumps < 10000) {
-            jumps++;
-            double currentG = scoreG.get(current) + Planets.getInstance().getPlanetById(current).getRechargeTime(now);
+    	while (!found && jumps < 10000) {
+    		jumps++;
+    		double currentG = scoreG.get(current) + Systems.getInstance().getSystemById(current).getRechargeTime(now);
 
-            final String localCurrent = current;
-            Planets.getInstance().visitNearbyPlanets(Planets.getInstance().getPlanetById(current), 30, p -> {
-                if (closed.contains(p.getId())) {
-                    return;
-                } else if (open.contains(p.getId())) {
-                    // is the current G better than the existing G
-                    if (currentG < scoreG.get(p.getId())) {
-                        // then change G and parent
-                        scoreG.put(p.getId(), currentG);
-                        parent.put(p.getId(), localCurrent);
-                    }
-                } else {
-                    // put the current G for this one in memory
-                    scoreG.put(p.getId(), currentG);
-                    // put the parent in memory
-                    parent.put(p.getId(), localCurrent);
-                    open.add(p.getId());
-                }
-            });
+    		final String localCurrent = current;
+    		Systems.getInstance().visitNearbySystems(Systems.getInstance().getSystemById(current), 30, p -> {
+    			if (closed.contains(p.getId())) {
+    				return;
+    			} else if (open.contains(p.getId())) {
+    				// is the current G better than the existing G
+    				if (currentG < scoreG.get(p.getId())) {
+    					// then change G and parent
+    					scoreG.put(p.getId(), currentG);
+    					parent.put(p.getId(), localCurrent);
+    				}
+    			} else {
+    				// put the current G for this one in memory
+    				scoreG.put(p.getId(), currentG);
+    				// put the parent in memory
+    				parent.put(p.getId(), localCurrent);
+    				open.add(p.getId());
+    			}
+    		});
 
-            String bestMatch = null;
-            double bestF = Double.POSITIVE_INFINITY;
-            for (String possible : open) {
-                // calculate F
-                double currentF = scoreG.get(possible) + scoreH.get(possible);
-                if (currentF < bestF) {
-                    bestMatch = possible;
-                    bestF = currentF;
-                }
-            }
+    		String bestMatch = null;
+    		double bestF = Double.POSITIVE_INFINITY;
+    		for (String possible : open) {
+    			// calculate F
+    			double currentF = scoreG.get(possible) + scoreH.get(possible);
+    			if (currentF < bestF) {
+    				bestMatch = possible;
+    				bestF = currentF;
+    			}
+    		}
 
-            current = bestMatch;
-            if(null == current) {
-                // We're done - probably failed to find anything
-                break;
-            }
+    		current = bestMatch;
+    		if(null == current) {
+    			// We're done - probably failed to find anything
+    			break;
+    		}
 
-            closed.add(current);
-            open.remove(current);
-            if (current.equals(endKey)) {
-                found = true;
-            }
-        }
+    		closed.add(current);
+    		open.remove(current);
+    		if (current.equals(endKey)) {
+    			found = true;
+    		}
+    	}
 
-        // now we just need to back up from the last current by parents until we
-        // hit null
-        List<Planet> path = new ArrayList<>();
-        String nextKey = current;
-        while (null != nextKey) {
-            path.add(Planets.getInstance().getPlanetById(nextKey));
-            // MekHQApp.logMessage(nextKey);
-            nextKey = parent.get(nextKey);
-        }
+    	// now we just need to back up from the last current by parents until we
+    	// hit null
+    	List<PlanetarySystem> path = new ArrayList<>();
+    	String nextKey = current;
+    	while (null != nextKey) {
+    		path.add(Systems.getInstance().getSystemById(nextKey));
+    		// MekHQApp.logMessage(nextKey);
+    		nextKey = parent.get(nextKey);
+    	}
 
-        // now reverse the direaction
-        JumpPath finalPath = new JumpPath();
-        for (int i = (path.size() - 1); i >= 0; i--) {
-            finalPath.addPlanet(path.get(i));
-        }
+    	// now reverse the direaction
+    	JumpPath finalPath = new JumpPath();
+    	for (int i = (path.size() - 1); i >= 0; i--) {
+    		finalPath.addSystem(path.get(i));
+    	}
 
-        return finalPath;
+    	return finalPath;
     }
 
-    public List<Planet> getAllReachablePlanetsFrom(Planet planet) {
-        return Planets.getInstance().getNearbyPlanets(planet, 30);
+    public List<PlanetarySystem> getAllReachableSystemsFrom(PlanetarySystem system) {
+        return Systems.getInstance().getNearbySystems(system, 30);
     }
 
     /**
@@ -6249,7 +6291,7 @@ public class Campaign implements Serializable, ITechManager {
             unit.addGunner(p);
         }
         while (unit.canTakeMoreVesselCrew()) {
-            Person p = newPerson(Person.T_SPACE_CREW);
+            Person p = newPerson(unit.getEntity().isSupportVehicle() ? Person.T_VEHICLE_CREW : Person.T_SPACE_CREW);
             if (!isGM) {
                 if (!recruitPerson(p)) {
                     return;
@@ -6321,19 +6363,19 @@ public class Campaign implements Serializable, ITechManager {
         rskillPrefs = prefs;
     }
 
-    public void setStartingPlanet() {
-        Map<String, Planet> planetList = Planets.getInstance().getPlanets();
-        Planet startingPlanet = planetList.get(getFaction().getStartingPlanet(getGameYear()));
+    public void setStartingSystem() {
+        Map<String, PlanetarySystem> systemList = Systems.getInstance().getSystems();
+        PlanetarySystem startingSystem = systemList.get(getFaction().getStartingPlanet(getGameYear()));
 
-        if (startingPlanet == null) {
-            startingPlanet = planetList.get(JOptionPane.showInputDialog(
+        if (startingSystem == null) {
+            startingSystem = systemList.get(JOptionPane.showInputDialog(
                     "This faction does not have a starting planet for this era. Please choose a planet."));
-            while (startingPlanet == null) {
-                startingPlanet = planetList.get(JOptionPane
+            while (startingSystem == null) {
+                startingSystem = systemList.get(JOptionPane
                         .showInputDialog("This planet you entered does not exist. Please choose a valid planet."));
             }
         }
-        location = new CurrentLocation(startingPlanet, 0);
+        location = new CurrentLocation(startingSystem, 0);
     }
 
     public void addLogEntry(Person p, LogEntry entry) {
@@ -6461,12 +6503,12 @@ public class Campaign implements Serializable, ITechManager {
         entity.heat = 0;
         entity.heatBuildup = 0;
         entity.setTransportId(Entity.NONE);
-        entity.setUnloaded(false);
-        entity.setDone(false);
         entity.resetTransporter();
         entity.setDeployRound(0);
         entity.setSwarmAttackerId(Entity.NONE);
         entity.setSwarmTargetId(Entity.NONE);
+        entity.setUnloaded(false);
+        entity.setDone(false);
         entity.setLastTarget(Entity.NONE);
         entity.setNeverDeployed(true);
         entity.setStuck(false);
@@ -6810,21 +6852,21 @@ public class Campaign implements Serializable, ITechManager {
      * - (number of jumps - 1)*7 days with a minimum value of zero.
      * - transit times from current planet and planet of supply origins in cases where the supply planet is not the same as current planet.
      * - a random 1d6 days for each jump plus 1d6 to simulate all of the other logistics of delivery.
-     * @param planet - A <code>Planet</code> object where the supplies are shipping from
+     * @param system - A <code>PlanetarySystem</code> object where the supplies are shipping from
      * @return the number of days that supplies will take to arrive.
      */
-    public int calculatePartTransitTime(Planet planet) {
+    public int calculatePartTransitTime(PlanetarySystem system) {
         //calculate number of jumps by light year distance as the crow flies divided by 30
         //the basic formula assumes 7 days per jump + system transit time on each side + random days equal
         //to (1+number of jumps)d6
-        double distance = planet.getDistanceTo(getCurrentPlanet());
+        double distance = system.getDistanceTo(getCurrentSystem());
         //calculate number of jumps by dividing by 30
         int jumps = (int)Math.ceil(distance/30.0);
         //you need a recharge except for the first jump
         int recharges = Math.max(jumps - 1, 0);
         //if you are delivering from the same planet then no transit times
-        int currentTransitTime = (distance>0) ? (int)Math.ceil(getCurrentPlanet().getTimeToJumpPoint(1.0)) : 0;
-        int originTransitTime = (distance>0) ? (int)Math.ceil(planet.getTimeToJumpPoint(1.0)) : 0;
+        int currentTransitTime = (distance>0) ? (int)Math.ceil(getCurrentSystem().getTimeToJumpPoint(1.0)) : 0;
+        int originTransitTime = (distance>0) ? (int)Math.ceil(system.getTimeToJumpPoint(1.0)) : 0;
         int amazonFreeShipping = Compute.d6(1+jumps);
         return recharges*7+currentTransitTime+originTransitTime+amazonFreeShipping;
     }
@@ -7080,74 +7122,19 @@ public class Campaign implements Serializable, ITechManager {
 
     }
 
-    public String getFinancialReport() {
+    public FinancialReport getFinancialReport() {
+        return FinancialReport.calculate(this);
+    }
+
+    public String getFormattedFinancialReport() {
         StringBuffer sb = new StringBuffer();
-        Money cash = finances.getBalance();
-        Money loans = finances.getLoanBalance();
-        Money mech = Money.zero();
-        Money vee = Money.zero();
-        Money ba = Money.zero();
-        Money infantry = Money.zero();
-        Money smallCraft = Money.zero();
-        Money largeCraft = Money.zero();
-        Money proto = Money.zero();
-        Money spareParts = Money.zero();
-        for (Map.Entry<UUID, Unit> mu : units.entrySet()) {
-            Unit u = mu.getValue();
-            Money value = u.getSellValue();
-            if (u.getEntity() instanceof Mech) {
-                mech = mech.plus(value);
-            } else if (u.getEntity() instanceof Tank) {
-                vee = vee.plus(value);
-            } else if (u.getEntity() instanceof BattleArmor) {
-                ba = ba.plus(value);
-            } else if (u.getEntity() instanceof Infantry) {
-                infantry = infantry.plus(value);
-            } else if (u.getEntity() instanceof Dropship
-                    || u.getEntity() instanceof Jumpship) {
-                largeCraft = largeCraft.plus(value);
-            } else if (u.getEntity() instanceof Aero) {
-                smallCraft = smallCraft.plus(value);
-            } else if (u.getEntity() instanceof Protomech) {
-                proto = proto.plus(value);
-            }
-        }
 
-        spareParts = spareParts.plus(getSpareParts().stream().map(x -> x.getActualValue().multipliedBy(x.getQuantity())).collect(Collectors.toList()));
+        FinancialReport r = getFinancialReport();
 
-        Money monthlyIncome = Money.zero();
-        Money monthlyExpenses = Money.zero();
-        Money coSpareParts = Money.zero();
-        Money coFuel = Money.zero();
-        Money coAmmo = Money.zero();
-        Money maintenance = Money.zero();
-        Money salaries = Money.zero();
-        Money overhead = Money.zero();
-        Money contracts = Money.zero();
+        Money liabilities = r.getTotalLiabilities();
+        Money assets = r.getTotalAssets();
+        Money netWorth = r.getNetWorth();
 
-        if (campaignOptions.payForMaintain()) {
-            maintenance = getWeeklyMaintenanceCosts().multipliedBy(4);
-        }
-        if (campaignOptions.payForSalaries()) {
-            salaries = getPayRoll();
-        }
-        if (campaignOptions.payForOverhead()) {
-            overhead = getOverheadExpenses();
-        }
-        if (campaignOptions.usePeacetimeCost()) {
-            coSpareParts = getMonthlySpareParts();
-            coAmmo = getMonthlyAmmo();
-            coFuel = getMonthlyFuel();
-        }
-
-        contracts = contracts.plus(getActiveContracts().stream().map(Contract::getMonthlyPayOut).collect(Collectors.toList()));
-        monthlyIncome = monthlyIncome.plus(contracts);
-        monthlyExpenses = maintenance.plus(salaries).plus(overhead).plus(coSpareParts).plus(coAmmo).plus(coFuel);
-
-        Money assets = cash.plus(mech).plus(vee).plus(ba).plus(infantry).plus(largeCraft)
-                            .plus(smallCraft).plus(proto).plus(spareParts).plus(getFinances().getTotalAssetValue());
-        Money liabilities = loans;
-        Money netWorth = assets.minus(liabilities);
         int longest = Math.max(
                 liabilities.toAmountAndSymbolString().length(),
                 assets.toAmountAndSymbolString().length());
@@ -7160,37 +7147,37 @@ public class Campaign implements Serializable, ITechManager {
         sb.append("    Assets............... ")
                 .append(String.format(formatted, assets.toAmountAndSymbolString())).append("\n");
         sb.append("       Cash.............. ")
-                .append(String.format(formatted, cash.toAmountAndSymbolString())).append("\n");
-        if (mech.isPositive()) {
+                .append(String.format(formatted, r.getCash().toAmountAndSymbolString())).append("\n");
+        if (r.getMechValue().isPositive()) {
             sb.append("       Mechs............. ")
-                    .append(String.format(formatted, mech.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getMechValue().toAmountAndSymbolString())).append("\n");
         }
-        if (vee.isPositive()) {
+        if (r.getVeeValue().isPositive()) {
             sb.append("       Vehicles.......... ")
-                    .append(String.format(formatted, vee.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getVeeValue().toAmountAndSymbolString())).append("\n");
         }
-        if (ba.isPositive()) {
+        if (r.getBattleArmorValue().isPositive()) {
             sb.append("       BattleArmor....... ")
-                    .append(String.format(formatted, ba.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getBattleArmorValue().toAmountAndSymbolString())).append("\n");
         }
-        if (infantry.isPositive()) {
+        if (r.getInfantryValue().isPositive()) {
             sb.append("       Infantry.......... ")
-                    .append(String.format(formatted, infantry.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getInfantryValue().toAmountAndSymbolString())).append("\n");
         }
-        if (proto.isPositive()) {
+        if (r.getProtomechValue().isPositive()) {
             sb.append("       Protomechs........ ")
-                    .append(String.format(formatted, proto.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getProtomechValue().toAmountAndSymbolString())).append("\n");
         }
-        if (smallCraft.isPositive()) {
+        if (r.getSmallCraftValue().isPositive()) {
             sb.append("       Small Craft....... ")
-                    .append(String.format(formatted, smallCraft.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getSmallCraftValue().toAmountAndSymbolString())).append("\n");
         }
-        if (largeCraft.isPositive()) {
+        if (r.getLargeCraftValue().isPositive()) {
             sb.append("       Large Craft....... ")
-                    .append(String.format(formatted, largeCraft.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getLargeCraftValue().toAmountAndSymbolString())).append("\n");
         }
         sb.append("       Spare Parts....... ")
-                .append(String.format(formatted, spareParts.toAmountAndSymbolString())).append("\n");
+                .append(String.format(formatted, r.getSparePartsValue().toAmountAndSymbolString())).append("\n");
 
         if (getFinances().getAllAssets().size() > 0) {
             for (Asset asset : getFinances().getAllAssets()) {
@@ -7213,33 +7200,33 @@ public class Campaign implements Serializable, ITechManager {
         sb.append("    Liabilities.......... ")
                 .append(String.format(formatted, liabilities.toAmountAndSymbolString())).append("\n");
         sb.append("       Loans............. ")
-                .append(String.format(formatted, loans.toAmountAndSymbolString())).append("\n\n\n");
+                .append(String.format(formatted, r.getLoans().toAmountAndSymbolString())).append("\n\n\n");
 
         sb.append("Monthly Profit........... ")
-                .append(String.format(formatted, monthlyIncome.minus(monthlyExpenses).toAmountAndSymbolString()))
+                .append(String.format(formatted, r.getMonthlyIncome().minus(r.getMonthlyExpenses()).toAmountAndSymbolString()))
                 .append("\n\n");
         sb.append("Monthly Income........... ")
-                .append(String.format(formatted, monthlyIncome.toAmountAndSymbolString())).append("\n");
+                .append(String.format(formatted, r.getMonthlyIncome().toAmountAndSymbolString())).append("\n");
         sb.append("    Contract Payments.... ")
-                .append(String.format(formatted, contracts.toAmountAndSymbolString())).append("\n\n");
+                .append(String.format(formatted, r.getContracts().toAmountAndSymbolString())).append("\n\n");
         sb.append("Monthly Expenses......... ")
-                .append(String.format(formatted, monthlyExpenses.toAmountAndSymbolString())).append("\n");
+                .append(String.format(formatted, r.getMonthlyExpenses().toAmountAndSymbolString())).append("\n");
         sb.append("    Salaries............. ")
-                .append(String.format(formatted, salaries.toAmountAndSymbolString())).append("\n");
+                .append(String.format(formatted, r.getSalaries().toAmountAndSymbolString())).append("\n");
         sb.append("    Maintenance.......... ")
-                .append(String.format(formatted, maintenance.toAmountAndSymbolString())).append("\n");
+                .append(String.format(formatted, r.getMaintenance().toAmountAndSymbolString())).append("\n");
         sb.append("    Overhead............. ")
-                .append(String.format(formatted, overhead.toAmountAndSymbolString())).append("\n");
+                .append(String.format(formatted, r.getOverheadCosts().toAmountAndSymbolString())).append("\n");
         if (campaignOptions.usePeacetimeCost()) {
             sb.append("    Spare Parts.......... ")
-                    .append(String.format(formatted, coSpareParts.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getMonthlySparePartCosts().toAmountAndSymbolString())).append("\n");
             sb.append("    Training Munitions... ")
-                    .append(String.format(formatted, coAmmo.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getMonthlyAmmoCosts().toAmountAndSymbolString())).append("\n");
             sb.append("    Fuel................. ")
-                    .append(String.format(formatted, coFuel.toAmountAndSymbolString())).append("\n");
+                    .append(String.format(formatted, r.getMonthlyFuelCosts().toAmountAndSymbolString())).append("\n");
         }
 
-        return new String(sb);
+        return sb.toString();
     }
 
     public void setHealingTimeOptions(int newHeal, int newNaturalHeal) {
@@ -8338,12 +8325,33 @@ public class Campaign implements Serializable, ITechManager {
         return fatigueTracker;
     }
 
+    /**
+     * Gets peacetime costs including salaries.
+     * @return The peacetime costs of the campaign including salaries.
+     */
     public Money getPeacetimeCost() {
-        return Money.zero()
-                .plus(getPayRoll(getCampaignOptions().useInfantryDontCount()))
-                .plus(getMonthlySpareParts())
-                .plus(getMonthlyFuel())
-                .plus(getMonthlyAmmo());
+        return getPeacetimeCost(true);
+    }
+
+    /**
+     * Gets peacetime costs, optionally including salaries.
+     *
+     * This can be used to ensure salaries are not double counted.
+     *
+     * @param includeSalaries A value indicating whether or not salaries
+     *                        should be included in peacetime cost calculations.
+     * @return The peacetime costs of the campaign, optionally including salaries.
+     */
+    public Money getPeacetimeCost(boolean includeSalaries) {
+        Money peaceTimeCosts = Money.zero()
+                                .plus(getMonthlySpareParts())
+                                .plus(getMonthlyFuel())
+                                .plus(getMonthlyAmmo());
+        if (includeSalaries) {
+            peaceTimeCosts = peaceTimeCosts.plus(getPayRoll(getCampaignOptions().useInfantryDontCount()));
+        }
+
+        return peaceTimeCosts;
     }
 
     public Money getMonthlySpareParts() {

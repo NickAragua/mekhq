@@ -1,19 +1,53 @@
 VERSION HISTORY:
 ----------------
-v0.45.5-SNAPSHOT
-+ PR #1163: Fix vast overvaluing of opfor BV in the briefing tab
-+ Issue #1161: don't cast non-Infantry to Infantry during peacetime cost calculations
-+ Issue #70: BA no longer has a 100% salvage chance
-+ Issue #1165: Player no longer gets dinged contract score for not having forces deployed immediately upon AtB contract start
-+ Issue #1170: Fixed issue introduced in 45.4 where player couldn't hire personnel from personnel market with mechs
-+ Issue #1164, #1174: Fix various issues involving money, in add/edit transaction, add/edit loot.
-+ Issue #1182: Fixes a NPE because some money amounts are not always initialized in all contracts.
+v0.47.3-SNAPSHOT
++ Issue #1344: Ensure techs show the right skill for Protomechs
++ PR #1348: Enable scenario modifiers to add objectives to scenarios generated from templates
++ Issue #1349: Problem with replacing Protomech limbs lost in combat
++ PR #1352: Feature: Add origin planet to Personnel
++ PR #1355: General support vehicle crew (fixes deployment bug)
+
+v0.47.2 (2019-11-15 2000 UTC) 
++ PR #1325: Customize protomechs and advanced aero in MekLab
++ PR #1326: Fix another potential error preventing day advancement when giving training XP
++ Issue #1327, 1329: Fixed multiple issues relating to scenario resolution introduced in 47.1
++ Issue #1333: Simca Ambulance possibly causing campaign to not load
++ Issue #1337: Offboard artillery - designate hex phase skipped when artillery comes from mekhq
++ Issue #1330: Fix NPE when PersonViewPanel has a pregnant individual
++ Issue #1316: Resolve money parsing exception in Retirement Defection Tracker
+
+v0.47.1 (2019-11-05 0300 UTC)
++ PR #1259: Fix map size display for AtB scenarios in the briefing tab (cosmetic issue only)
++ Data - Updating the AtB Starter Guide to v3, thanks CampaignAnon
++ Issue #1257: Don't double up salaries when charging for peacetime costs
++ PR #1268: Fix money formatting in prisoner ransom messages
++ Issue #1274: Fix About window closing immediately
++ Issue #1275: Fix zero sized dialogs (Edit Biography, etc)
++ Issue #1273: Updated edge cost for AtB to match current rules
++ PR #1288: Allow the large craft ammo swap dialog to switch AR10, missile and artillery munitions properly
++ PR #1282: Fix erroneously high unit values
++ PR #1294: Improve ammo swaps and refits of Large Craft ammo bins
++ PR #1298: Restructuring of person view panel, double scroll issue, and other scrolling issues
++ PR #1300: Markdown for descriptions
++ PR #1280: planetary system refactor
++ PR #1305: Mac OSX key bindings on non-standard look and feel
++ PR #1304: Markdown Editor
++ PR #1303: Various GUI fixes
++ Issue #1290: Fixes for issues with campaign subset export.
++ PR #1309: Planetary System Map
++ PR #1314: a few map fixes
++ PR #1286,1307: Scenario Objectives - explicit objective management system for legacy AtB scenarios;
+	Ability to define objectives for scenario templates.
++ PR #1317: fix NPE that halts new day processing while applying training XP
++ PR #1318: player units given to other players now properly return to the campaign during scenario resolution.
++ Issue #1308: Fix NPE when the campaign folder is not present
++ PR #1315: Rescalable images for unit view panel when fluff image exists
++ PR #1320: Customize support vehicles in the MekLab.
++ PR #1321: For scenarios generated from templates, the ability to explicitly assign forces/units to different player force templates.
++ PR #1324: corrected icon map
+
+v0.47.0 (2019-08-21 0300 UTC)
 + Issue #1171: Adds autosave feature (daily or weekly, and/or before missions).
-+ Issue #1128: Player can now view stats for enemy personnel when resolving a scenario.
-+ Issue #1197: Fix bug where personnel could not be assigned to Battle Armor after repair.
-+ Issue #1185: Player can acquire ammo bins via parts acquisition dialog.
-+ Issue #1205: Improve purchase parts dialog performance when sorting.
-+ PR #1217: Fix error preventing scenario resolution involving KIA personnel
 + PR #1215: Minor updates to AtB:
 	- opfor infantry transports now come loaded with infantry (if you have infantry turned on)
 	- opfor infantry may now be field gunners
@@ -21,16 +55,35 @@ v0.45.5-SNAPSHOT
 	- allied dropships may now be non-Leopards
 	- VTOLs are always on as the bot can handle them fairly well
 + PR #1210: Adds all remaining unimplemented Large Craft parts - CIC, Grav Decks, K-F Drive, K-F Boom and the like
-+ PR #1216: Track part ID moves during campaign loads that may affect refits (may fix some outstanding refit bugs)
-+ Issue #1110: Badger / Bandit vehicles can't be customized prior to 3047
 + PR #1227: Dropships can now load alternate munitions into artillery base if the game is configured for it
 + PR #1226: [Feature] Campaign Subset Export: export a subset of your current campaign into another, either new or existing, campaign file. Overwrites units and personnel with the same guid. Option to remove exported personnel from source campaign. Obviously make backups before using on an existing campaign.
-+ Issue #1230: Tripod mech breaking campaign save
+
+0.46.0 (2019-08-12 1900 UTC)
++ Issue 1249: Tech Names Missing in Event Log
+
+0.46.0-rc.2 (2019-08-12 0100 UTC)
 + Issue #1075: Fix 'Mech location repair and salvage times to match StratOps
 + Issue #1224: Scenario templates no longer fail to generate forces when the 'use vehicles' AtB setting is turned off
 + Issue #1238: Fix bug where self crewed units could not be activated after being mothballed
 + PR #1239: Add GM Mothball/Activate to unit menu in hangar
 + Issue #1240: Cannot Salvage at 100%
+
+v0.46.0-rc.1 (2019-07-23 0300 UTC)
++ PR #1163: Fix vast overvaluing of opfor BV in the briefing tab
++ Issue #1161: don't cast non-Infantry to Infantry during peacetime cost calculations
++ Issue #70: BA no longer has a 100% salvage chance
++ Issue #1165: Player no longer gets dinged contract score for not having forces deployed immediately upon AtB contract start
++ Issue #1170: Fixed issue introduced in 45.4 where player couldn't hire personnel from personnel market with mechs
++ Issue #1164, #1174: Fix various issues involving money, in add/edit transaction, add/edit loot.
++ Issue #1182: Fixes a NPE because some money amounts are not always initialized in all contracts.
++ Issue #1128: Player can now view stats for enemy personnel when resolving a scenario.
++ Issue #1197: Fix bug where personnel could not be assigned to Battle Armor after repair.
++ Issue #1185: Player can acquire ammo bins via parts acquisition dialog.
++ Issue #1205: Improve purchase parts dialog performance when sorting.
++ PR #1217: Fix error preventing scenario resolution involving KIA personnel
++ PR #1216: Track part ID moves during campaign loads that may affect refits (may fix some outstanding refit bugs)
++ Issue #1110: Badger / Bandit vehicles can't be customized prior to 3047
++ Issue #1230: Tripod mech breaking campaign save
 
 v0.45.4 (2019-03-24 1700 UTC)
 + PR #1067: Switch to Joda Money library internally for financial math
@@ -107,7 +160,7 @@ v0.45.2 (2018-11-18 0200 UTC)
 + Issue #852: Support for Award clusters if an award is given multiple times to a person.
 + Issue #905: Fixes NPE when a spouse is missing on campaign load or personnel menu click.
 + PR #882: Adds support for gzipped Campaign files (*.cpnx.gz).
-+ Planets: Reunification War data for Outworlds Alliance + start of RWR 
++ Planets: Reunification War data for Outworlds Alliance + start of RWR
 + PR #959: Fix for inability to repair damaged VTOL internal structure after loading campaign
 + Issue #967: Fix bug where acquired Units could never be bought
 + PR #971: Feature allowing grouping personnel by their unit on the Personnel tab
@@ -178,7 +231,7 @@ v0.45.0 (2018-08-02 0200 UTC)
 + Issue #729: Fix for 'adjust contract pay' calculating number of required lances at the wrong time.
 + PR #831: Fix two bugs in Edit Injuries dialog
 		Advanced medical: remove injury and change injury types choices when location changes.
-+ PR #823: Feature: Damage pilots from GM mode (non-advanced medical) 
++ PR #823: Feature: Damage pilots from GM mode (non-advanced medical)
 + PR #811: [Feature]: Mass mothball/reactivate. Reactivating now does its best to restore the unit's force/crew/tech assignments.
 + Issue #830: [Feature]: GM Mode "Strip Unit". Takes all parts off the given unit(s) and place them in the warehouse.
 + Issue #775: [Feature]: Daily Log History. Retains 'daily log' entries for up to 120 days when turned on. Entry history is cleared when the user exits the program.
@@ -206,7 +259,7 @@ v0.43.11-RC5 (2018-06-04 0100 UTC)
 + PR #712: Fix for issue #708 [0.43.10-RC4 : Bug] Old Contacts Appearing in Deployment Requirements
 	Fix for issue #706 ArrayIndexOutOfBoundsException in BaseAttackBuiltInScenario
 	Fix for most cases of issue #695 Base Attack (Defense) mission generate with no Allies or OpFor in AtB and
-	#674 AtB fails to generate opfor 
+	#674 AtB fails to generate opfor
 	The only exception being if the opfor has no RAT for the current contract date, which will be addressed in a separate PR.
 + PR #725: Fix for issue #714 0.43.2 Migration to 0.43.9 causes Phantom Personel in Unit Breakdown
 + PR #726: Fix issue #600 and #621 where inner sphere prisoners were being converted to trueborn warriors and clanners were being
@@ -294,7 +347,7 @@ v0.43.7-RC1 (2018-01-21 22:00 UTC)
 + Do not require waiting for a refit kit if the only needed parts are ammo or ammo bins.
 + Not having enough ammo in the warehouse to fill all the bins will not delay the start of a refit.
 + Issue #300: Comstar ranks do not take into account service years when determining the main "pilot" of a vehicle
-+ Issue #378: Thruster Maintenance on Conventional/Aerospace Fighters 
++ Issue #378: Thruster Maintenance on Conventional/Aerospace Fighters
 + Bug: NPE when attempting to refit unit that previously had a refit canceled.
 + Issue #454: News won't fire at campaign creation
 + Issue #500: Contract view text alignment
@@ -348,8 +401,8 @@ v0.43.5 (2017-12-17 11:00 UTC)
 + Customize Small Craft and Dropships in MekLab.
 + Track aerospace bays and doors as repairable parts.
 + Issue #554: Mass Repair/Salvage Button Broken during active campaign.
-+ Post-battle scenario resolution now features the ability to explicitly declare whether an individual was KIA, 
-	replacing the implicit determination from "number of hits". Personnel manually brought back from death will 
++ Post-battle scenario resolution now features the ability to explicitly declare whether an individual was KIA,
+	replacing the implicit determination from "number of hits". Personnel manually brought back from death will
 	no longer stay dead as a result.
 
 v0.43.4 (2017-10-01 11:00 UTC)
@@ -360,7 +413,7 @@ v0.43.4 (2017-10-01 11:00 UTC)
 + PR #398 Fix for no probe defender missions #413
 + Feature #363: Feature Request: Order from Warehouse
 + Support for LAM repairs and hiring/assigning LAM pilots.
-+ Refactor MR/MS/MRW and move much of the code to a service level class from the dialog. 
++ Refactor MR/MS/MRW and move much of the code to a service level class from the dialog.
 	o Fix multiple bugs related to 'impossible' fixes such as damaged hip/shoulders, missing parts, etc...
 	o Make the process much more efficient by not making checks that aren't necessary over and over.
 	o Add additional color-coded messaging when parts can't be fixed due to configuration or
@@ -375,8 +428,8 @@ v0.43.4 (2017-10-01 11:00 UTC)
 	o Updates all tech intro dates to the Universal Technology Advancement Table in Interstellar Operations.
 	o New options to vary part and unit tech level according to campaign year and/or faction.
 + Update Era.java to match MUL and add Dark Age information.
-+ PR #453: Overhaul much of the logic in MRMS to be better and faster. 
-    o Fix multiple bugs around rush jobs and repeated fixes 
++ PR #453: Overhaul much of the logic in MRMS to be better and faster.
+    o Fix multiple bugs around rush jobs and repeated fixes
 + Issue #455: Repair bay uses the wrong ammo bin.
 + PR #480: Faction.java redesign to fix issue with Eras. (More precise faction name and starting planet changes)
 
@@ -432,10 +485,10 @@ v0.43.1 (2017-03-31 01:15 UTC)
 	 to match MM repo as of March 31/2017
  + Updated MegaMek.jar to 0.43.1
  + Updated MegaMekLab.jar to 0.43.1
-	 
+
 v0.43.0 (2017-02-13 03:30 UTC)
 + Improve Mass Repair/Mass Salvage technician selection by providing additional configuration options
-+ Fix #313: Prisoners counting towards combatants total for defection rolls. 
++ Fix #313: Prisoners counting towards combatants total for defection rolls.
 + Fix #314: Purchasing aerospace sensors via 'purchase parts' are always 0 ton.
 + Planetary Data Update 39
 + Updated MegaMek.jar and MegaMekLab.jar to 0.43.0
@@ -473,7 +526,7 @@ v0.41.27 (2016-12-07 03:00 UTC)
 + Issue #247: GM Tools RAT Roller Will Not Add Dropships.
 + Overhaul of Mass Repair/Salvage and adding Mass Repair to warehouse
 + Issue #239: Be smarter about clearing assignments when removing personnel from units and vice versa.
-+ Issue #252: Enable 'remove all personnel' when selecting multiple units in the hangar 
++ Issue #252: Enable 'remove all personnel' when selecting multiple units in the hangar
 + Issue #239: Techs stuck on assignment (also #261).
 + Issue #231: IndexOutOfBoundsException in Layered Icon editor
 + Issue #224: Mechs with bad hip/shoulder do not show in repair bay if IS undamaged
@@ -565,7 +618,7 @@ v0.3.29 (2016-06-05 22:40 UTC)
 + Issue #96: Null Pointer Exception from Special Mission (Prison Break)
 + Issue #91: Can't assign patients to doctors
 + PR #92: Cleanup of the infirmary panel
-+ PR #94: Conception and Birth messages now have names hyperlinked. 
++ PR #94: Conception and Birth messages now have names hyperlinked.
 + Issue #88: Current location displayed as "null"
 + Fixed IO Reputation rating value for experience.
 + Fixed an NPE in hasChildren() when trying to hire new personnel

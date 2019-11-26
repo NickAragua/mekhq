@@ -37,7 +37,7 @@ dependencies {
         exclude group: 'org.python', module: 'jython'
         exclude group: 'org.mozilla', module: 'rhino'
     }
-    
+
     // We have been using a modified version of svgSalamander in MML, which we'll keep around until
     // the conversion to batik is complete.
     implementation files('lib/svgSalamander.jar')
@@ -49,6 +49,8 @@ dependencies {
     implementation 'org.apache.commons:commons-csv:1.4'
     implementation 'javax.vecmath:vecmath:1.5.2'
 
+    implementation 'com.atlassian.commonmark:commonmark:0.13.0'
+
     implementation 'log4j:log4j:1.2.17'
     implementation 'javax.xml.bind:jaxb-api:2.3.0'
     implementation 'com.fasterxml.jackson.core:jackson-core:2.9.8'
@@ -58,7 +60,7 @@ dependencies {
 
     jarbundler 'com.ultramixer.jarbundler:jarbundler-core:3.3.0'
 
-    testImplementation 'junit:junit:4.12' 
+    testImplementation 'junit:junit:4.12'
     testImplementation 'org.mockito:mockito-core:2.20.1'
 }
 
@@ -87,7 +89,7 @@ ext {
 
 task compileMM (type: GradleBuild) {
     description = 'Compiles the MM directory for packaging in a Jar'
-    
+
     buildFile = "${mmDir}/build.gradle"
     dir = "${mmDir}"
     tasks = [ 'compileTestJava' ]
@@ -131,7 +133,7 @@ task mmJarLibDir (type: Jar, dependsOn: compileMM) {
 
 task compileMML (type: GradleBuild) {
     description = 'Compiles the MML directory for packaging in a Jar'
-    
+
     buildFile = "${mmlDir}/build.gradle"
     dir = "${mmlDir}"
     tasks = [ 'compileTestJava' ]
@@ -165,7 +167,7 @@ jar {
 
 task stageFiles(type: Copy) {
     description = 'Stages files that are to be copied into the distribution.'
-    
+
     from projectDir
     include "${conf}/**"
     include "${docs}/**"
@@ -180,13 +182,14 @@ task stageFiles(type: Copy) {
     include "${data}/images/misc/"
     include "${data}/images/universe/"
     include "${data}/scenariomodifiers/"
+    include "${data}/scenariotemplates/"
     include "${project.ext.plugins}/"
     include "${campaigns}/"
     include 'license.txt'
     include 'SubmitBug.html'
 
     into fileStagingDir
-    
+
     inputs.dir "${conf}"
     inputs.dir "${docs}"
     inputs.dir "${data}"
@@ -290,7 +293,7 @@ distributions {
                     .findAll { it.name.endsWith(".jar") && !it.name.toLowerCase().startsWith("megamek") }) {
                 into "${lib}"
             }
-            
+
             duplicatesStrategy = 'exclude'
         }
     }
@@ -346,14 +349,14 @@ distributions {
             }
             from (fileStagingDir)
             from (mmJar) {
-                into "${createOSXBundle.jarSubdir}/${lib}" 
+                into "${createOSXBundle.jarSubdir}/${lib}"
             }
             from (mmlJar) {
-                into "${createOSXBundle.jarSubdir}/${lib}" 
+                into "${createOSXBundle.jarSubdir}/${lib}"
             }
             from (project.sourceSets.main.runtimeClasspath.files
                     .findAll { it.name.endsWith(".jar") && !it.name.toLowerCase().startsWith("megamek") }) {
-                into "${createOSXBundle.jarSubdir}/${lib}" 
+                into "${createOSXBundle.jarSubdir}/${lib}"
             }
             duplicatesStrategy = 'exclude'
         }
@@ -376,7 +379,7 @@ createExe {
         new File("${buildDir}/${outputDir}/${inifile}").text = """# Launch4j runtime config
 # you can add arguments here that will be processed by the JVM at runtime
 ${project.ext.jvmOptions.join('\n')}
-"""        
+"""
     }
 }
 
@@ -398,7 +401,7 @@ task createMMExe (type: edu.sc.seis.launch4j.tasks.Launch4jLibraryTask, dependsO
         new File("${buildDir}/${outputDir}/${inifile}").text = """# Launch4j runtime config
 # you can add arguments here that will be processed by the JVM at runtime
 ${project.ext.jvmOptions.join('\n')}
-"""        
+"""
     }
 }
 
@@ -420,14 +423,14 @@ task createMMLExe (type: edu.sc.seis.launch4j.tasks.Launch4jLibraryTask, depends
         new File("${buildDir}/${outputDir}/${inifile}").text = """# Launch4j runtime config
 # you can add arguments here that will be processed by the JVM at runtime
 ${project.ext.jvmOptions.join('\n')}
-"""        
+"""
     }
 }
 
 task stageMM (type: GradleBuild) {
     description = 'Prepares files from the MegaMek project'
     group = 'distribution'
-    
+
     buildFile = "${mmDir}/build.gradle"
     dir = "${mmDir}"
     tasks = [ 'stageFiles', 'createStartScripts' ]
@@ -436,7 +439,7 @@ task stageMM (type: GradleBuild) {
 task stageMML (type: GradleBuild) {
     description = 'Prepares files from the MegaMekLab project'
     group = 'distribution'
-    
+
     buildFile = "${mmlDir}/build.gradle"
     dir = "${mmlDir}"
     tasks = [ 'stageFiles', 'createStartScripts' ]
@@ -550,7 +553,7 @@ task buildFromRepo (type: GradleBuild) {
     dependsOn cloneRepo
     dependsOn cloneMMRepo
     dependsOn cloneMMLRepo
-    
+
     buildFile = "${repoDir}/build.gradle"
     dir = "${repoDir}"
     tasks = [ 'assembleDist' ]
@@ -560,7 +563,7 @@ task release (type: Copy) {
     description = 'Builds the release packages from the repository and copies them into the project build directory'
     group = 'distribution'
     dependsOn buildFromRepo
-    
+
     from "${repoDir}/MekHQ/build/distributions"
     into "${distributionDir}"
 }
@@ -568,7 +571,7 @@ task release (type: Copy) {
 task buildMM (type: GradleBuild, dependsOn: cloneMMRepo) {
     description = 'Prepares files from the MegaMek project'
     group = 'distribution'
-    
+
     buildFile = "${mmRepoDir}/build.gradle"
     dir = "${mmRepoDir}"
     tasks = [ 'assembleDist' ]
@@ -577,7 +580,7 @@ task buildMM (type: GradleBuild, dependsOn: cloneMMRepo) {
 task buildMML (type: GradleBuild, dependsOn: cloneMMLRepo) {
     description = 'Prepares files from the MegaMekLab project'
     group = 'distribution'
-    
+
     buildFile = "${mmlRepoDir}/build.gradle"
     dir = "${mmlRepoDir}"
     tasks = [ 'assembleDist' ]
@@ -589,7 +592,7 @@ task buildAllFromRepo (type: GradleBuild) {
     dependsOn cloneRepo
     dependsOn buildMM
     dependsOn buildMML
-    
+
     buildFile = "${repoDir}/build.gradle"
     dir = "${repoDir}"
     tasks = [ 'unixDistTar', 'windowsDistZip', 'macDistTar' ]
@@ -599,7 +602,7 @@ task releaseAll (type: Copy) {
     description = 'Builds the release packages for all the projects and copies them into the project build directory'
     group = 'distribution'
     dependsOn buildAllFromRepo
-    
+
     from "${repoDir}/MekHQ/build/distributions"
     from "${mmRepoDir}/megamek/build/distributions"
     from "${mmlRepoDir}/build/distributions"

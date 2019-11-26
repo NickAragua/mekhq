@@ -34,6 +34,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import megamek.common.Entity;
 import megamek.common.logging.LogLevel;
 import mekhq.MekHQ;
 import mekhq.MekHqXmlUtil;
@@ -75,6 +76,8 @@ public class Scenario implements Serializable {
     
     //allow multiple loot objects for meeting different mission objectives
     private ArrayList<Loot> loots;
+
+    private List<ScenarioObjective> scenarioObjectives;
     
     public Scenario() {
         this(null);
@@ -86,9 +89,10 @@ public class Scenario implements Serializable {
         this.report = "";
         this.status = S_CURRENT;
         this.date = null;
-        this.subForceIds = new ArrayList<Integer>();
-        this.unitIds = new ArrayList<UUID>();
-        this.loots = new ArrayList<Loot>();
+        this.subForceIds = new ArrayList<>();
+        this.unitIds = new ArrayList<>();
+        this.loots = new ArrayList<>();
+        this.scenarioObjectives = new ArrayList<>();
     }
     
     public static String getStatusName(int s) {
@@ -153,6 +157,19 @@ public class Scenario implements Serializable {
         return date;
     }
     
+    public boolean hasObjectives() {
+        return scenarioObjectives != null &&
+                scenarioObjectives.size() > 0;
+    }
+    
+    public List<ScenarioObjective> getScenarioObjectives() {
+        return scenarioObjectives;
+    }
+
+    public void setScenarioObjectives(List<ScenarioObjective> scenarioObjectives) {
+        this.scenarioObjectives = scenarioObjectives;
+    }
+
     public int getId() {
         return id;
     }
@@ -187,12 +204,23 @@ public class Scenario implements Serializable {
         return force;
     }
     
+    /**
+     * Gets the IDs of units deployed to this scenario individually.
+     */
+    public List<UUID> getIndividualUnitIDs() {
+        return unitIds;
+    }
+    
     public void addForces(int fid) {
         subForceIds.add(fid);
     }
     
     public void addUnit(UUID uid) {
         unitIds.add(uid);
+    }
+    
+    public boolean containsPlayerUnit(UUID uid) {
+        return unitIds.contains(uid);
     }
     
     public void removeUnit(UUID uid) {
@@ -292,6 +320,13 @@ public class Scenario implements Serializable {
                 +"</id>");
         if(null != stub) {
             stub.writeToXml(pw1, indent+1);
+        } else {
+            // only bother writing out objectives for active scenarios
+            if(hasObjectives()) {
+                for(ScenarioObjective objective : this.scenarioObjectives) {
+                    objective.Serialize(pw1);
+                }
+            }
         }
         if(loots.size() > 0 && status == S_CURRENT) {
             pw1.println(MekHqXmlUtil.indentStr(indent+1)+"<loots>");
@@ -363,6 +398,7 @@ public class Scenario implements Serializable {
         	}
         	            
             retVal.loadFieldsFromXmlNode(wn);
+            retVal.scenarioObjectives = new ArrayList<>();
             
             // Okay, now load Part-specific fields!
             NodeList nl = wn.getChildNodes();
@@ -402,6 +438,8 @@ public class Scenario implements Serializable {
                         Loot loot = Loot.generateInstanceFromXML(wn3, c, version);
                         retVal.loots.add(loot);
                     }
+                } else if (wn2.getNodeName().equalsIgnoreCase(ScenarioObjective.ROOT_XML_ELEMENT_NAME)) {
+                    retVal.getScenarioObjectives().add(ScenarioObjective.Deserialize(wn2));
                 }
             }
         } catch (Exception ex) {
@@ -426,4 +464,8 @@ public class Scenario implements Serializable {
         loots = new ArrayList<Loot>();
     }
     
+    public boolean isFriendlyUnit(Entity entity, Campaign campaign) {
+        return getForces(campaign).getUnits().stream().
+                anyMatch(unitID -> unitID.equals(UUID.fromString(entity.getExternalIdAsString())));
+    }
 }

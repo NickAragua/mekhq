@@ -144,6 +144,7 @@ import mekhq.campaign.parts.equipment.EquipmentPart;
 import mekhq.campaign.parts.equipment.MissingEquipmentPart;
 import mekhq.campaign.personnel.Ancestors;
 import mekhq.campaign.personnel.Bloodname;
+import mekhq.campaign.personnel.FatigueTracker;
 import mekhq.campaign.personnel.Person;
 import mekhq.campaign.personnel.PersonnelOptions;
 import mekhq.campaign.personnel.Rank;
@@ -288,6 +289,7 @@ public class Campaign implements Serializable, ITechManager {
     private Calendar shipSearchExpiration; //AtB
     private IUnitGenerator unitGenerator;
     private IUnitRating unitRating;
+    private FatigueTracker fatigueTracker;
 
     private final IAutosaveService autosaveService;
 
@@ -3244,6 +3246,8 @@ public class Campaign implements Serializable, ITechManager {
 
         // check for anything in finances
         finances.newDay(this);
+        
+        getFatigueTracker().newDay(this);
 
         MekHQ.triggerEvent(new NewDayEvent(this));
         return true;
@@ -8328,6 +8332,10 @@ public class Campaign implements Serializable, ITechManager {
         }
 
         return unitRating;
+    }
+    
+    public FatigueTracker getFatigueTracker() {
+        return fatigueTracker;
     }
 
     public Money getPeacetimeCost() {

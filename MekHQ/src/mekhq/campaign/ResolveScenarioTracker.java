@@ -1077,6 +1077,9 @@ public class ResolveScenarioTracker {
                 person.setXp(person.getXp() + status.getXP());
                 ServiceLogger.participatedInMission(person, campaign.getDate(), scenario.getName(), m.getName());
             }
+            
+            campaign.getFatigueTracker().processBattleForPerson(campaign, person.getId(), campaign.getCalendar().getTime());
+            
             for(Kill k : status.getKills()) {
                 campaign.addKill(k);
             }

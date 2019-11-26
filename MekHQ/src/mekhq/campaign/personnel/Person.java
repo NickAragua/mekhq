@@ -3527,8 +3527,15 @@ public class Person implements Serializable, MekHqXmlSerializable {
     }
 
     public void removeInjury(Injury i) {
+        removeInjury(i, true);
+    }
+    
+    public void removeInjury(Injury i, boolean triggerEvent) {
         injuries.remove(i);
-        MekHQ.triggerEvent(new PersonChangedEvent(this));
+        
+        if(triggerEvent) {
+            MekHQ.triggerEvent(new PersonChangedEvent(this));
+        }
     }
 
     public String getInjuriesDesc() {

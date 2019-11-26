@@ -97,6 +97,6 @@ public class Modifier {
     }
     
     public static enum Value {
-        PILOTING, GUNNERY
+        PILOTING, GUNNERY, NONCOMBAT
     }
 }

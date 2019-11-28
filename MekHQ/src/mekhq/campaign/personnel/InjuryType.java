@@ -47,6 +47,7 @@ import mekhq.campaign.GameEffect;
 public class InjuryType {
     /** Modifier tag to use for injuries */
     public static final String MODTAG_INJURY = "injury";
+    public static final String MODTAG_FATIGUE = "fatigue";
     
     // Registry methods
     private static final Map<String, InjuryType> REGISTRY = new HashMap<>();

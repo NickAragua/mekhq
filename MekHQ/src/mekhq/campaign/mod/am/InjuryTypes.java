@@ -28,7 +28,6 @@ import megamek.common.logging.LogLevel;
 import mekhq.MekHQ;
 import mekhq.Utilities;
 import mekhq.campaign.*;
-import mekhq.campaign.log.LogEntryController;
 import mekhq.campaign.log.MedicalLogEntry;
 import mekhq.campaign.log.MedicalLogger;
 import mekhq.campaign.personnel.BodyLocation;
@@ -58,7 +57,6 @@ public final class InjuryTypes {
     public static final InjuryType BROKEN_BACK = new InjuryTypes.BrokenBack();
     // New injury types go here (or extend the class)
     public static final InjuryType SEVERED_SPINE = new InjuryTypes.SeveredSpine();
-    public static final InjuryType FATIGUE = new InjuryTypes.Fatigue();
 
     private static boolean registered = false;
     
@@ -682,30 +680,6 @@ public final class InjuryTypes {
         @Override
         protected int modifyInjuryTime(Person p, int time) {
             return super.modifyInjuryTime(p, time + Compute.d6());
-        }
-    }
-    
-    public static final class Fatigue extends InjuryType {
-        public Fatigue() {
-            recoveryTime = 14;
-            allowedLocations = EnumSet.of(BodyLocation.GENERIC);
-            permanent = false;
-            maxSeverity = Integer.MAX_VALUE;
-            fluffText = "Fatigued";
-            simpleName = "fatigued";
-            level = InjuryLevel.CHRONIC;
-        }
-        
-        @Override
-        public String getFluffText(BodyLocation loc, int severity, int gender) {
-            String fatigueText = severity == 0 ? 
-                    "Rested" : String.format("Fatigued (%d)", severity);
-            return fatigueText;
-        }
-
-        @Override
-        public Collection<Modifier> getModifiers(Injury inj) {
-            return Arrays.asList(new Modifier(Modifier.Value.NONCOMBAT, inj.getHits(), null, InjuryType.MODTAG_INJURY));
         }
     }
 }

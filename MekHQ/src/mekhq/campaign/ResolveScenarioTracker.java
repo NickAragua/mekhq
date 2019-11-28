@@ -1138,7 +1138,7 @@ public class ResolveScenarioTracker {
                 ServiceLogger.participatedInMission(person, campaign.getDate(), scenario.getName(), m.getName());
             }
             
-            campaign.getFatigueTracker().processBattleForPerson(campaign, person.getId(), campaign.getCalendar().getTime());
+            campaign.getFatigueTracker().processBattleForPerson(campaign, person.getId());
             
             for(Kill k : status.getKills()) {
                 campaign.addKill(k);

@@ -1,29 +1,39 @@
+/*
+ * Copyright (C) 2019 MegaMek team
+ *
+ * This file is part of MekHQ.
+ *
+ * MekHQ is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * MekHQ is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with MekHQ.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package mekhq.campaign.personnel;
 
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.Temporal;
-import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.joda.time.Days;
-
 import mekhq.campaign.Campaign;
-import mekhq.campaign.mod.am.InjuryTypes;
-import mekhq.campaign.mod.am.InjuryTypes.Fatigue;
 
 /**
  * This class tracks fatigue for individual personnel,
- * as per the rules in Strategic Operations, page [x]
+ * as per the rules in Strategic Operations, page 41
  * @author NickAragua
  *
  */
@@ -56,9 +66,11 @@ public class FatigueTracker {
 	 * @param personID
 	 * @param date
 	 */
-	public void processBattleForPerson(Campaign campaign, UUID personID, Date date) {
+	public void processBattleForPerson(Campaign c, UUID personID) {
 	    LocalDate recoveryStartDate = 
-	            LocalDate.of(date.getYear(), date.getMonth(), date.getDate()).with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+	            LocalDate.of(c.getCalendar().get(Calendar.YEAR),
+	                    c.getCalendar().get(Calendar.MONTH), 
+	                    c.getCalendar().get(Calendar.DAY_OF_MONTH)).with(TemporalAdjusters.next(DayOfWeek.MONDAY));
 	    recoveryStartDates.put(personID, recoveryStartDate);
 		
 		if(currentFatigueLevels.containsKey(personID)) {
@@ -66,8 +78,6 @@ public class FatigueTracker {
 		} else {
 			currentFatigueLevels.put(personID, 1);
 		}
-		
-		updateFatigueEffectsForPerson(campaign, personID);
 	}
 	
 	public void newDay(Campaign c) {
@@ -87,6 +97,12 @@ public class FatigueTracker {
 		for(UUID personID : currentFatigueLevels.keySet()) {
 		    int fatigueDecrement = 0;
 		    
+		    // we won't bother updating fatigue info for non-fatigued personnel
+		    if(!currentFatigueLevels.containsKey(personID) || 
+		            (currentFatigueLevels.get(personID) <= 0)) {
+		        continue;
+		    }
+		    
 		    if(recoveryStartDates.containsKey(personID)) {
 		        long dateDiff = ChronoUnit.DAYS.between(recoveryStartDates.get(personID), currentDate);
 		        
@@ -101,14 +117,15 @@ public class FatigueTracker {
 			}
 		    
 		    //if campaign has field kitchen or we're off-contract and on a planet
-		    boolean campaignHasFieldKitchen = false;
-		    if(campaignHasFieldKitchen) {
+		    boolean campaignHasSufficientFieldKitchens = false;
+		    if(campaignHasSufficientFieldKitchens) {
 		        fatigueDecrement++;
 		    }
 		    
-            currentFatigueLevels.put(personID, Math.max(currentFatigueLevels.get(personID) - fatigueDecrement, 0));
-            
-            updateFatigueEffectsForPerson(c, personID);
+		    // if there's no fatigue update to make after all this, don't bother doing it
+		    if(fatigueDecrement > 0) {
+                currentFatigueLevels.put(personID, Math.max(currentFatigueLevels.get(personID) - fatigueDecrement, 0));
+		    }
 		}
 	}
 	
@@ -123,22 +140,20 @@ public class FatigueTracker {
 	}
 	
 	/**
-	 * Clear any existing fatigue 
-	 * @param campaign
-	 * @param personID
+	 * Get the fatigue effects for a person. If the person has no recorded fatigue level
+	 * we assume they are not fatigued.
 	 */
-	public void updateFatigueEffectsForPerson(Campaign campaign, UUID personID) {
-	    int fatigueLevel = currentFatigueLevels.get(personID);
-				
-		Person person = campaign.getPerson(personID);
-        Injury existingFatigue = person.getInjuryByLocationAndType(BodyLocation.GENERIC, InjuryTypes.FATIGUE);
-        if(existingFatigue == null) {
-            existingFatigue = InjuryTypes.FATIGUE.newInjury(campaign, campaign.getPerson(personID), BodyLocation.GENERIC, fatigueLevel);
-        } else {
-            person.removeInjury(existingFatigue, false);
-        } 
-        
-        person.addInjury(existingFatigue);
+	public FatigueEffect getFatigueEffectForPerson(UUID personID) {
+	    int fatigueLevel = getFatigueLevelForPerson(personID);
+	    return fatigueModifierChart.floorEntry(fatigueLevel).getValue();
+	}
+	
+	/**
+	 * Get the fatigue level for a person. If the person has no recorded fatigue level
+     * we assume they have 0-level fatigue.
+	 */
+	public int getFatigueLevelForPerson(UUID personID) {
+	    return currentFatigueLevels.containsKey(personID) ? currentFatigueLevels.get(personID) : 0;
 	}
 	
 	public static class FatigueEffect {

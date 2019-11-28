@@ -343,6 +343,7 @@ public class Campaign implements Serializable, ITechManager {
         fatigueLevel = 0;
         atbConfig = null;
         autosaveService = new AutosaveService(MekHQ.getLogger());
+        fatigueTracker = new FatigueTracker();
     }
 
     /**

@@ -35,6 +35,7 @@ import megamek.common.util.EncodeControl;
 import mekhq.IconPackage;
 import mekhq.MekHQ;
 import mekhq.campaign.personnel.Award;
+import mekhq.campaign.personnel.FatigueTracker.FatigueEffect;
 import mekhq.campaign.Campaign;
 import mekhq.campaign.Kill;
 import mekhq.campaign.log.LogEntry;
@@ -1081,35 +1082,63 @@ public class PersonViewPanel extends ScrollablePanel {
         JLabel lblInjury;
         JLabel txtInjury;
         int row = 1;
+        
+        GridBagConstraints leftLabelConstraints = new GridBagConstraints();
+        leftLabelConstraints.gridx = 0;
+        leftLabelConstraints.gridy = row;
+        leftLabelConstraints.weightx = 0.0;
+        leftLabelConstraints.insets = new Insets(0, 10, 0, 0);
+        leftLabelConstraints.fill = GridBagConstraints.NONE;
+        leftLabelConstraints.anchor = GridBagConstraints.NORTHWEST;
+        
+        GridBagConstraints rightLabelConstraints = new GridBagConstraints();
+        rightLabelConstraints.gridx = 1;
+        rightLabelConstraints.gridy = row;
+        rightLabelConstraints.weightx = 1.0;
+        rightLabelConstraints.weighty = 0;
+        rightLabelConstraints.insets = new Insets(0, 20, 0, 0);
+        rightLabelConstraints.fill = GridBagConstraints.HORIZONTAL;
+        rightLabelConstraints.anchor = GridBagConstraints.NORTHWEST;
+        
+        FatigueEffect fatigueEffects = campaign.getFatigueTracker().getFatigueEffectForPerson(person.getId());
+        int fatigueLevel = campaign.getFatigueTracker().getFatigueLevelForPerson(person.getId());
         ArrayList<Injury> injuries = person.getInjuries();
+        String text;
+        
         for(Injury injury : injuries) {
             lblInjury = new JLabel(injury.getFluff());
-            gridBagConstraints = new GridBagConstraints();
-            gridBagConstraints.gridx = 0;
-            gridBagConstraints.gridy = row;
-            gridBagConstraints.weightx = 0.0;
-            gridBagConstraints.insets = new Insets(0, 10, 0, 0);
-            gridBagConstraints.fill = GridBagConstraints.NONE;
-            gridBagConstraints.anchor = GridBagConstraints.NORTHWEST;
-            pnlInjuryDetails.add(lblInjury, gridBagConstraints);
+            leftLabelConstraints.gridy = row;
+            pnlInjuryDetails.add(lblInjury, leftLabelConstraints);
 
-            String text = (injury.isPermanent() && injury.getTime() < 1) ?
+            text = (injury.isPermanent() && injury.getTime() < 1) ?
                 resourceMap.getString("lblPermanentInjury.text") //$NON-NLS-1$
                 : String.format(resourceMap.getString("format.injuryTime"), injury.getTime()); //$NON-NLS-1$
             txtInjury = new JLabel("<html>" + text + "</html>");
-            gridBagConstraints = new GridBagConstraints();
-            gridBagConstraints.gridx = 1;
-            gridBagConstraints.gridy = row;
-            gridBagConstraints.weightx = 1.0;
             if(row == (injuries.size() - 1)) {
-                gridBagConstraints.weighty = 1.0;
+                rightLabelConstraints.weighty = 1.0;
             }
-            gridBagConstraints.insets = new Insets(0, 20, 0, 0);
-            gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
-            gridBagConstraints.anchor = GridBagConstraints.NORTHWEST;
-            pnlInjuryDetails.add(txtInjury, gridBagConstraints);
+            rightLabelConstraints.gridy = row;
+            pnlInjuryDetails.add(txtInjury, rightLabelConstraints);
             row++;
         }
+        
+        lblInjury = new JLabel(fatigueEffects.combatPenalty == 0 ? "Rested" : "Fatigued");
+        leftLabelConstraints.gridy = row;
+        pnlInjuryDetails.add(lblInjury, leftLabelConstraints);
+
+        text = String.format("(%d points, %s%d combat modifier, %s%d non-combat modifier%s)", 
+                fatigueLevel, 
+                fatigueEffects.combatPenalty > 0 ? "+" : "",
+                fatigueEffects.combatPenalty,
+                fatigueEffects.nonCombatPenalty > 0 ? "+" : "",
+                fatigueEffects.nonCombatPenalty,
+                fatigueEffects.triggersMoraleCheck ? ", affects morale" : "");
+        txtInjury = new JLabel("<html>" + text + "</html>");
+        if(injuries.size() == 0) {
+            rightLabelConstraints.weighty = 1.0;
+        }
+        rightLabelConstraints.gridy = row;
+        pnlInjuryDetails.add(txtInjury, rightLabelConstraints);
 
         pnlInjuries.add(pnlInjuryDetails, BorderLayout.CENTER);
 

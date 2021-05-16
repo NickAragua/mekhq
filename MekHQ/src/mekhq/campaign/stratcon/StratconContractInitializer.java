@@ -104,12 +104,12 @@ public class StratconContractInitializer {
                                 objectiveParams.objectiveScenarios, objectiveParams.objectiveScenarioModifiers);
                         break;
                     case AlliedFacilityControl:
-                        initializeTrackFacilities(campaignState.getTrack(x), numObjects, ForceAlignment.Allied, true);
-                        campaignState.incrementStrategicObjectiveCompletedCount(numObjects);
+                        //initializeTrackFacilities(campaignState.getTrack(x), numObjects, ForceAlignment.Allied, true);
+                        //campaignState.incrementStrategicObjectiveCompletedCount(numObjects);
                         break;
                     case HostileFacilityControl:
                     case FacilityDestruction:
-                        initializeTrackFacilities(campaignState.getTrack(x), numObjects, ForceAlignment.Opposing, true);
+                        //initializeTrackFacilities(campaignState.getTrack(x), numObjects, ForceAlignment.Opposing, true);
                         break;
                     case AnyScenarioVictory:
                         if (objectiveParams.objectiveScenarioModifiers != null) {

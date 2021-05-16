@@ -1434,7 +1434,8 @@ public class StratconRulesManager {
                     // loop through scenarios - if we haven't deployed in time,
                     // fail it and apply consequences
                     for (StratconScenario scenario : track.getScenarios().values()) {
-                        if (scenario.getDeploymentDate().isBefore(ev.getCampaign().getLocalDate()) &&
+                        if ((scenario.getDeploymentDate() != null) &&
+                                scenario.getDeploymentDate().isBefore(ev.getCampaign().getLocalDate()) &&
                                 scenario.getPrimaryForceIDs().isEmpty()) {
                             processIgnoredScenario(scenario, campaignState);
                         }
@@ -1459,7 +1460,7 @@ public class StratconRulesManager {
         List<StratconScenario> cleanupList = new ArrayList<>();
 
         for (StratconScenario scenario : track.getScenarios().values()) {
-            if (scenario.getDeploymentDate() == null) {
+            if ((scenario.getDeploymentDate() == null) && !scenario.isStrategicObjective()) {
                 cleanupList.add(scenario);
             }
         }
